@@ -2,9 +2,63 @@
 
 
 
+struct Figure
+{
+
+	char type;
+	int x;
+	int y;
+
+	bool playerFigure;
+	bool alive;
+};
+
+struct Move
+{
+	char board[8][8];
+	Figure figure;
+	int newX, newY;
+
+};
+
+/*
+bool isTerminalNode(Board n)
+{
+	// TODO: THIS
+	return true;
+}
+int minimax(Board node, int depth, bool maximizingPlayer)
+{
+	if (depth == 0 || isTerminalNode(node))
+		return cost(node);
+
+	if (maximizingPlayer)
+	{
+		int bestValue = -999999;
+		for each child of node
+		{
+			int v = minimax(child, depth - 1, FALSE);
+			bestValue = max(bestValue, v);
+		}
+		return bestValue;
+	}
+	else // (*minimizing player *)
+	{
+		int bestValue = 999999;
+		for each child of node
+		{
+			int v = minimax(child, depth - 1, TRUE);
+			bestValue = min(bestValue, v);
+		}
+		return bestValue;
+	}
+}
+*/
+
+
 // p - player
 // e - enemy
-enum Figure
+enum FigureType
 {
 	Figure_ePeasant = 'P',
 	Figure_pPeasant = 'p',
@@ -20,28 +74,57 @@ enum Figure
 	Figure_pKing = 'k'
 };
 
-void initChessboard(char board[8][8])
+struct Figure initFigure(FigureType type, bool alive, bool playerFigure, int x, int y)
 {
-	board[0][0] = Figure_eRook;
-	board[0][1] = Figure_eKnight;
-	board[0][2] = Figure_eBishop;
-	board[0][3] = Figure_eKing;
-	board[0][4] = Figure_eQueen;
-	board[0][5] = Figure_eBishop;
-	board[0][6] = Figure_eKnight;
-	board[0][7] = Figure_eRook;
-	for (int i = 0; i < 8; i++) board[1][i] = Figure_ePeasant;
-
-	board[7][0] = Figure_pRook;
-	board[7][1] = Figure_pKnight;
-	board[7][2] = Figure_pBishop;
-	board[7][3] = Figure_pKing;
-	board[7][4] = Figure_pQueen;
-	board[7][5] = Figure_pBishop;
-	board[7][6] = Figure_pKnight;
-	board[7][7] = Figure_pRook;
-	for (int i = 0; i < 8; i++) board[6][i] = Figure_pPeasant;
+	struct Figure f;
+	f.type = type;
+	f.alive = alive;
+	f.playerFigure = playerFigure;
+	f.x = x;
+	f.y = y;
+	return f;
 }
+
+void refreshBoard(struct Figure figures[32], char board[8][8])
+{
+	for (int i = 0; i < 8; i++)
+		for (int j = 0; j < 8; j++)
+			board[i][j] = '.';
+	for (int i = 0; i < 32; i++)
+	{
+		Figure f = figures[i];
+		board[f.x][f.y] = f.type;
+	}
+}
+
+void initChessboard(struct Figure figures[32], char board[8][8])
+{
+	figures[0] = initFigure(Figure_eRook, 1, 0, 0, 0);
+	figures[1] = initFigure(Figure_eKnight, 1, 0, 0, 1);
+	figures[2] = initFigure(Figure_eBishop, 1, 0, 0, 2);
+	figures[3] = initFigure(Figure_eKing, 1, 0, 0, 3);
+	figures[4] = initFigure(Figure_eQueen, 1, 0, 0, 4);
+	figures[5] = initFigure(Figure_eBishop, 1, 0, 0, 5);
+	figures[6] = initFigure(Figure_eKnight, 1, 0, 0, 6);
+	figures[7] = initFigure(Figure_eRook, 1, 0, 0, 7);
+	for (int i = 0; i < 8; i++) figures[8+i] = initFigure(Figure_ePeasant, 1, 0, 1, i);
+
+	figures[16] = initFigure(Figure_pRook, 1, 1, 7, 0);
+	figures[17] = initFigure(Figure_pKnight, 1, 1, 7, 1);
+	figures[18] = initFigure(Figure_pBishop, 1, 1, 7, 2);
+	figures[19] = initFigure(Figure_pKing, 1, 1, 7, 3);
+	figures[20] = initFigure(Figure_pQueen, 1, 1, 7, 4);
+	figures[21] = initFigure(Figure_pBishop, 1, 1, 7, 5);
+	figures[22] = initFigure(Figure_pKnight, 1, 1, 7, 6);
+	figures[23] = initFigure(Figure_pRook, 1, 1, 7, 7);
+	for (int i = 0; i < 8; i++) figures[24 + i] = initFigure(Figure_pPeasant, 1, 0, 6, i);
+
+	
+	refreshBoard(figures, board);
+	
+}
+
+
 
 void printBoard(char board[8][8])
 {
@@ -58,7 +141,7 @@ void printBoard(char board[8][8])
 int main()
 {
 	char board[8][8];
-	
+	/*
 	for(int i=0; i<8; i++)
 	{
 		for (int j = 0; j < 8; j++)
@@ -66,8 +149,9 @@ int main()
 			board[i][j] = ' ';
 		}
 	}
-	
-	initChessboard(board);
+	*/
+	struct Figure figures[32];
+	initChessboard(figures, board);
 	printBoard(board);
 
 	scanf_s("%d", NULL);
