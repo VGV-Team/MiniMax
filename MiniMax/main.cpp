@@ -2,9 +2,23 @@
 #include <time.h>  
 #include <stdlib.h>
 
-// TODO: sestopanje
-// TODO: ne refresh tabel - treba je narediti s sestopanjem
-// TODO: rušada, menjava peasanta za neki bolsga
+
+
+// TODO: rušada
+// TODO: šah = edina poteza
+
+bool gameOver = false;
+
+enum FigureType
+{
+	Figure_Peasant = 'p',
+	Figure_Rook = 'r',
+	Figure_Knight = 'h',
+	Figure_Bishop = 'b',
+	Figure_Queen = 'q',
+	Figure_King = 'k',
+	Figure_Empty = '.'
+};
 
 struct Figure
 {
@@ -24,7 +38,9 @@ struct Move
 	char board[8][8];
 	Figure figure;
 	int newX, newY;
-
+	int oldX, oldY;
+	int newLocationFigure;
+	char oldFigureType;
 	//Is this good?
 	int points;
 
@@ -36,16 +52,7 @@ struct MinimaxReturn
 	struct Move bestMove;
 };
 
-enum FigureType
-{
-	Figure_Peasant = 'p',
-	Figure_Rook = 'r',
-	Figure_Knight = 'h',
-	Figure_Bishop = 'b',
-	Figure_Queen = 'q',
-	Figure_King = 'k',
-	Figure_Empty = '.'
-};
+
 
 void copyBoard(char board[8][8], char newBoard[8][8])
 {
@@ -71,9 +78,24 @@ void addToMoves(struct Move moves[], int& movesIndex, int newX, int newY, char b
 	//char newBoard[8][8];
 	//copyBoard(board, m.board);
 	//TODO: change the board state
-	m.figure = fig; //This is a COPY!!! FIX TODO:
+	m.figure = fig; //This is a COPY!!!
 	m.newX = newX;
 	m.newY = newY;
+	m.oldX = fig.x;
+	m.oldY = fig.y;
+	m.oldFigureType = fig.type;
+
+	// if peasant reached the end of the board he is promoted to a queen
+	if (m.figure.type == Figure_Peasant)
+	{
+		if(m.figure.playerFigure && m.newX == 0 || !m.figure.playerFigure && m.newX == 7)
+		{
+			m.figure.type = Figure_Queen;
+		}
+	}
+	
+	if (board[newX][newY] == Figure_Empty) m.newLocationFigure = -1;
+	else m.newLocationFigure = board[newX][newY];
 	moves[movesIndex] = m;
 	movesIndex++;
 }
@@ -492,9 +514,6 @@ return true;
 }
 */
 
-
-
-
 void getAllAvailableMoves(char board[8][8], struct Move moves[], int& movesIndex, struct Figure figures[32], bool player)
 {
 	int oldI = 0;
@@ -643,8 +662,9 @@ void printBoard(char board[8][8], struct Figure figures[32])
 	}
 }
 
-void makeMove(char board[8][8], struct Move m, struct Figure figures[32])
+void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool realMove = false)
 {
+	
 	if (board[m.newX][m.newY] == Figure_Empty)
 	{
 		//OK, we can move freely
@@ -654,17 +674,58 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32])
 	{
 		//We will kill an enemy figure by moving here
 		figures[board[m.newX][m.newY]].alive = false;
-		printf("Killed figure type: %c\n", figures[board[m.newX][m.newY]].type - 32);
+		if(realMove)
+		{
+			printf("Killed figure type: %c\n", figures[board[m.newX][m.newY]].type - 32);
+			if (figures[board[m.newX][m.newY]].type == Figure_King)
+			{
+				gameOver = true;
+				printf("King killed. Game finished.\n");
+			}
+		}
+		
 	}
-	printf("Moving %c from x:%d y:%d to x:%d y:%d\n", m.figure.type, m.figure.x, m.figure.y, m.newX, m.newY);
+	//printf("Moving %c from x:%d y:%d to x:%d y:%d\n", m.figure.type, m.figure.x, m.figure.y, m.newX, m.newY);
 	//printf("%d %d\n", figures[1].x, figures[1].y);
 	/*m.figure.x = m.newX;
 	m.figure.y = m.newY;*/
+
+
+	// changes peasant to queen if he reached end of the board
+	figures[board[m.figure.x][m.figure.y]].type = m.figure.type;
+
+	// update board with figure that moved
+	board[m.newX][m.newY] = board[m.figure.x][m.figure.y];
+
 	figures[board[m.figure.x][m.figure.y]].x = m.newX;
 	figures[board[m.figure.x][m.figure.y]].y = m.newY;
 	figures[board[m.figure.x][m.figure.y]].peasantFirstMove = false; //We have to set this to false in case we moved a peasant for the first time.
 																	 //printf("%d %d\n", figures[1].x, figures[1].y);
-	refreshBoard(figures, board);
+
+	// update board by clearing figure that moved
+	board[m.figure.x][m.figure.y] = Figure_Empty;
+
+	//refreshBoard(figures, board);
+	
+
+}
+
+void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
+{
+	figures[board[m.newX][m.newY]].type = m.oldFigureType;
+	board[m.oldX][m.oldY] = board[m.newX][m.newY];
+	if(m.newLocationFigure >= 0)
+	{
+		board[m.newX][m.newY] = m.newLocationFigure;
+		figures[m.newLocationFigure].alive = true;
+	}
+	else
+	{
+		board[m.newX][m.newY] = Figure_Empty;
+	}
+	figures[board[m.oldX][m.oldY]].x = m.oldX;
+	figures[board[m.oldX][m.oldY]].y = m.oldY;
+
 }
 
 struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int depth, bool maximizingPlayer)
@@ -672,16 +733,12 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	struct MinimaxReturn ret;
 	ret.value = 0;
 
-
-	//PROBLEM TUKAJ JE DA ZMERAJ VRNEM PRAZEN MOVE IN POTEM NEZNA PRIMERJAT/PRIDE DO EXCEPTIONA
-	//FIX!!!!
-
 	if (depth == 0) //|| isTerminalNode(node))
 		return ret; //TODO
 
 
-	if (maximizingPlayer)
-	{
+	//if (maximizingPlayer)
+	//{
 		ret.value = -999999;
 		struct Move moves[100];
 		int movesIndex = 0;
@@ -691,10 +748,16 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		evaluateMoves(board, figures, moves, movesIndex);
 		for (int i = 0; i < movesIndex; i++) {
 
-			copyBoard(board, newBoard);
-			copyFigures(figures, newFigures);
-			makeMove(newBoard, moves[i], newFigures);
-			struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+			//copyBoard(board, newBoard);
+			//copyFigures(figures, newFigures);
+			//makeMove(newBoard, moves[i], newFigures);
+
+			makeMove(board, moves[i], figures);
+			//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+			struct MinimaxReturn result = minimax(board, figures, depth - 1, !maximizingPlayer);
+			undoMove(board, moves[i], figures);
+
+			result.value = -result.value;
 			//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
 			if (result.value + moves[i].points >= ret.value)
 			{
@@ -709,7 +772,8 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		//	int v = minimax(child, depth - 1, FALSE);
 		//	bestValue = max(bestValue, v);
 		//}
-	}
+	//}
+	/*
 	else // (*minimizing player *)
 	{
 		ret.value = 999999;
@@ -729,7 +793,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			if (result.value + moves[i].points <= ret.value)
 			{
 				//printf("SETTING WORSE MOVE\n");
-				ret.value = result.value + moves[i].points;
+				ret.value =  result.value + moves[i].points;
 				ret.bestMove = moves[i];
 			}
 		}
@@ -740,19 +804,20 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		//	bestValue = min(bestValue, v);
 		//}
 	}
+	*/
 }
 
-void randomAI(char board[8][8], struct Figure figures[32])
+void randomAI(char board[8][8], struct Figure figures[32], bool isPlayer = false)
 {
 	//get all available moves this turn
 	struct Move moves[100];
 	int movesIndex = 0;
 	//true - player moves, false - AI moves
-	getAllAvailableMoves(board, moves, movesIndex, figures, false);
+	getAllAvailableMoves(board, moves, movesIndex, figures, isPlayer);
 
 	//Take a random move and execute it
 	int r = rand() % movesIndex;
-	makeMove(board, moves[r], figures);
+	makeMove(board, moves[r], figures, true);
 
 	//Print the board to see the result
 	printBoard(board, figures);
@@ -769,7 +834,7 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 
 	//Evaluate available moves and execute the most potential one
 	struct Move m = evaluateMoves(board, figures, moves, movesIndex);
-	makeMove(board, m, figures);
+	makeMove(board, m, figures, true);
 
 	//Print the board to see the result
 	printBoard(board, figures);
@@ -778,13 +843,17 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 
 void miniMaxAI(char board[8][8], struct Figure figures[32])
 {
+	clock_t begin = clock();
+	struct MinimaxReturn mRet = minimax(board, figures, 6, true);
+	clock_t end = clock();
+	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	printf("Used %lf seconds.\n", elapsed_secs);
 
-	struct MinimaxReturn mRet = minimax(board, figures, 4, true);
 	struct Move bestMove = mRet.bestMove;
 
-	printf("%d %d\n", bestMove.newX, bestMove.newY);
+	printf("%d %d %d\n", bestMove.newX, bestMove.newY, bestMove.points);
 
-	makeMove(board, bestMove, figures);
+	makeMove(board, bestMove, figures, true);
 
 	//Print the board to see the result
 	printBoard(board, figures);
@@ -799,13 +868,13 @@ void playerMove(char board[8][8], struct Figure figures[32])
 	int movesIndex = 0;
 	struct Move m;
 
+
 	//we get user input and check if it is valid; we do that until we get a valid move
 	do {
 		//Input format: figureX, figureY, newX, newY
 		scanf_s("%d %d %d %d", &fx, &fy, &newX, &newY);
 		getAllAvailableMoves(board, moves, movesIndex, figures, true);
-
-
+		
 		for (int i = 0; i < movesIndex; i++)
 		{
 			m = moves[i];
@@ -833,16 +902,30 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 {
 	srand(time(NULL));
 
-	bool gameOver = false;
-	while (!gameOver)
+	
+	while (true)
 	{
 		printf("****** AI MOVE ******\n");
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
-		miniMaxAI(board, figures);
+		//miniMaxAI(board, figures);
+
+		if (gameOver)
+		{
+			printf("**** AI won. ****\n");
+			break;
+		}
+
+
 		printf("**** PLAYER MOVE ****\n");
 		playerMove(board, figures);
-		//TODO: gameOver = isGameOver()?
+		//randomAI(board, figures, true);
+		
+		if (gameOver)
+		{
+			printf("**** AI won. ****\n");
+			break;
+		}
 	}
 
 	//TESTING
@@ -863,25 +946,25 @@ int main()
 	//MAIN LOOP
 	gameLoop(board, figures);
 
-#pragma region Old testing
-	//TESTING getAvailableMoves function
-	/*
-	struct Move moves[100];
-	int movesIndex = 0;
+	#pragma region Old testing
+		//TESTING getAvailableMoves function
+		/*
+		struct Move moves[100];
+		int movesIndex = 0;
 
 
-	int oldI = 0;
-	for (int j = 0; j < 16; j++) {
-	printf("Getting available moves for figure type %c\n", figures[j].type);
-	getAvailableMoves(figures[j], board, moves, movesIndex, figures);
-	for (int i = oldI; i < movesIndex; i++)
-	{
-	oldI++;
-	printf("Move %d: x:%d y:%d\n", i + 1, moves[i].newX, moves[i].newY);
-	}
-	}*/
-	//END TESTING
-#pragma endregion
+		int oldI = 0;
+		for (int j = 0; j < 16; j++) {
+		printf("Getting available moves for figure type %c\n", figures[j].type);
+		getAvailableMoves(figures[j], board, moves, movesIndex, figures);
+		for (int i = oldI; i < movesIndex; i++)
+		{
+		oldI++;
+		printf("Move %d: x:%d y:%d\n", i + 1, moves[i].newX, moves[i].newY);
+		}
+		}*/
+		//END TESTING
+	#pragma endregion
 
 
 	scanf_s("%d", NULL);
