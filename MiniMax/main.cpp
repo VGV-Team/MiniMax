@@ -4,8 +4,10 @@
 
 
 
-// TODO: rušada
-// TODO: šah = edina poteza
+// TODO: rušada - later
+// TODO: šah = edina poteza - later
+// TODO: endless game with two kings - later
+// TODO: if next move == win -> do this
 
 bool gameOver = false;
 
@@ -712,6 +714,13 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool r
 
 void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
 {
+	// reverse peasant first move
+	if (figures[board[m.newX][m.newY]].type == Figure_Peasant)
+	{
+		if (m.figure.playerFigure && m.oldX == 6 || !m.figure.playerFigure && m.oldX == 1) figures[board[m.newX][m.newY]].peasantFirstMove = true;
+	}
+
+
 	figures[board[m.newX][m.newY]].type = m.oldFigureType;
 	board[m.oldX][m.oldY] = board[m.newX][m.newY];
 	if(m.newLocationFigure >= 0)
@@ -873,6 +882,8 @@ void playerMove(char board[8][8], struct Figure figures[32])
 	do {
 		//Input format: figureX, figureY, newX, newY
 		scanf_s("%d %d %d %d", &fx, &fy, &newX, &newY);
+
+		movesIndex = 0;
 		getAllAvailableMoves(board, moves, movesIndex, figures, true);
 		
 		for (int i = 0; i < movesIndex; i++)
@@ -908,7 +919,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		printf("****** AI MOVE ******\n");
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
-		//miniMaxAI(board, figures);
+		miniMaxAI(board, figures);
 
 		if (gameOver)
 		{
@@ -918,8 +929,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 
 
 		printf("**** PLAYER MOVE ****\n");
-		playerMove(board, figures);
-		//randomAI(board, figures, true);
+		//playerMove(board, figures);
+		randomAI(board, figures, true);
 		
 		if (gameOver)
 		{
