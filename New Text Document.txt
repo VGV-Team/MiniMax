@@ -1,0 +1,2 @@
+standard_error = sigma(x) / sqrt(N)
+N..st poskusov

@@ -1,0 +1,5 @@
+﻿  main.cpp
+c:\users\zigsi\desktop\fri git\ps\minimax\main.cpp(834): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+c:\users\zigsi\desktop\fri git\ps\minimax\main.cpp(887): warning C4477: 'scanf_s' : format string '%d' requires an argument of type 'int *', but variadic argument 1 has type 'int'
+  MiniMax.vcxproj -> C:\Users\zigsi\Desktop\FRI git\PS\x64\Debug\MiniMax.exe
+  MiniMax.vcxproj -> C:\Users\zigsi\Desktop\FRI git\PS\x64\Debug\MiniMax.pdb (Partial PDB)
