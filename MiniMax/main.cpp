@@ -14,6 +14,9 @@ struct Figure
 
 	bool playerFigure;
 	bool alive;
+
+	//Bool to check if the peasant can be moved two fields (first peasant move)
+	bool peasantFirstMove;
 };
 
 struct Move
@@ -22,6 +25,15 @@ struct Move
 	Figure figure;
 	int newX, newY;
 
+	//Is this good?
+	int points;
+
+};
+
+struct MinimaxReturn
+{
+	int value;
+	struct Move bestMove;
 };
 
 enum FigureType
@@ -44,7 +56,16 @@ void copyBoard(char board[8][8], char newBoard[8][8])
 	}
 }
 
-void addToMoves(struct Move moves[], int& movesIndex, int newX, int newY, char board[8][8], Figure fig) 
+void copyFigures(struct Figure figures[32], struct Figure newFigures[32])
+{
+	for (int i = 0; i < 32; i++)
+	{
+		struct Figure f = figures[i];
+		newFigures[i] = f;
+	}
+}
+
+void addToMoves(struct Move moves[], int& movesIndex, int newX, int newY, char board[8][8], Figure fig)
 {
 	struct Move m;
 	//char newBoard[8][8];
@@ -68,32 +89,42 @@ void getAvailableMoves(Figure f, char board[8][8], struct Move moves[], int& mov
 {
 	bool friendly = f.playerFigure;
 
-	if(f.type == Figure_Peasant)
+	if (f.type == Figure_Peasant)
 	{
-		if(f.playerFigure)
+		if (f.playerFigure)
 		{
 			// look up
 			if (f.x - 1 >= 0 && board[f.x - 1][f.y] == Figure_Empty)
 			{
 				addToMoves(moves, movesIndex, f.x - 1, f.y, board, f);
 			}
-			if (f.x + 1 < 8 && f.y + 1 < 8 && board[f.x + 1][f.y+1] != Figure_Empty)
+			//look up 2 fields - first peasant move
+			if (f.peasantFirstMove && f.x - 2 >= 0 && board[f.x - 2][f.y] == Figure_Empty)
 			{
-				// kill and add to moves
-				if (!isFriendly(board, f, f.x + 1, f.y + 1, figures)) addToMoves(moves, movesIndex, f.x + 1, f.y + 1, board, f);
+				addToMoves(moves, movesIndex, f.x - 2, f.y, board, f);
 			}
-			if (f.x + 1 < 8 && f.y - 1 >= 0 && board[f.x + 1][f.y - 1] != Figure_Empty)
+			if (f.x - 1 < 8 && f.y + 1 < 8 && board[f.x - 1][f.y + 1] != Figure_Empty)
 			{
 				// kill and add to moves
-				if (!isFriendly(board, f, f.x + 1, f.y - 1, figures)) addToMoves(moves, movesIndex, f.x + 1, f.y - 1, board, f);
+				if (!isFriendly(board, f, f.x - 1, f.y + 1, figures)) addToMoves(moves, movesIndex, f.x - 1, f.y + 1, board, f);
+			}
+			if (f.x - 1 < 8 && f.y - 1 >= 0 && board[f.x - 1][f.y - 1] != Figure_Empty)
+			{
+				// kill and add to moves
+				if (!isFriendly(board, f, f.x - 1, f.y - 1, figures)) addToMoves(moves, movesIndex, f.x - 1, f.y - 1, board, f);
 			}
 		}
-		else 
+		else
 		{
 			// look down
-			if (f.x + 1<8 && board[f.x + 1][f.y] == Figure_Empty)
+			if (f.x + 1 < 8 && board[f.x + 1][f.y] == Figure_Empty)
 			{
 				addToMoves(moves, movesIndex, f.x + 1, f.y, board, f);
+			}
+			//look down 2 fields - first peasant move
+			if (f.peasantFirstMove && f.x + 2 < 8 && board[f.x + 2][f.y] == Figure_Empty)
+			{
+				addToMoves(moves, movesIndex, f.x + 2, f.y, board, f);
 			}
 			if (f.x + 1<8 && f.y + 1 < 8 && board[f.x + 1][f.y + 1] != Figure_Empty)
 			{
@@ -119,7 +150,7 @@ void getAvailableMoves(Figure f, char board[8][8], struct Move moves[], int& mov
 			{
 				if (board[x][y] == Figure_Empty)
 				{
-					addToMoves(moves, movesIndex,x, y, board, f);
+					addToMoves(moves, movesIndex, x, y, board, f);
 				}
 				else
 				{
@@ -446,7 +477,7 @@ void getAvailableMoves(Figure f, char board[8][8], struct Move moves[], int& mov
 		//look down left
 		if (x + 1 < 8 && y - 1 >= 0 && !isFriendly(board, f, x + 1, y - 1, figures)) addToMoves(moves, movesIndex, x + 1, y - 1, board, f);
 		//look left
-		if (y - 1 >= 0 && !isFriendly(board, f, x, y - 1, figures)) addToMoves(moves, movesIndex, x , y - 1, board, f);
+		if (y - 1 >= 0 && !isFriendly(board, f, x, y - 1, figures)) addToMoves(moves, movesIndex, x, y - 1, board, f);
 		//look up left
 		if (x - 1 >= 0 && y - 1 >= 0 && !isFriendly(board, f, x - 1, y - 1, figures)) addToMoves(moves, movesIndex, x - 1, y - 1, board, f);
 	}
@@ -456,36 +487,12 @@ void getAvailableMoves(Figure f, char board[8][8], struct Move moves[], int& mov
 /*
 bool isTerminalNode(Board n)
 {
-	// TODO: THIS
-	return true;
-}
-int minimax(Board node, int depth, bool maximizingPlayer)
-{
-	if (depth == 0 || isTerminalNode(node))
-		return cost(node);
-
-	if (maximizingPlayer)
-	{
-		int bestValue = -999999;
-		for each child of node
-		{
-			int v = minimax(child, depth - 1, FALSE);
-			bestValue = max(bestValue, v);
-		}
-		return bestValue;
-	}
-	else // (*minimizing player *)
-	{
-		int bestValue = 999999;
-		for each child of node
-		{
-			int v = minimax(child, depth - 1, TRUE);
-			bestValue = min(bestValue, v);
-		}
-		return bestValue;
-	}
+// TODO: THIS
+return true;
 }
 */
+
+
 
 
 void getAllAvailableMoves(char board[8][8], struct Move moves[], int& movesIndex, struct Figure figures[32], bool player)
@@ -496,7 +503,7 @@ void getAllAvailableMoves(char board[8][8], struct Move moves[], int& movesIndex
 	//Hardcoded for AI (figure index 0 to 15)
 	for (int j = start; j < end; j++) {
 		if (!figures[j].alive) continue; //If the figure is dead, then we skip it
-		//printf("Getting available moves for figure type %c\n", figures[j].type);
+										 //printf("Getting available moves for figure type %c\n", figures[j].type);
 		getAvailableMoves(figures[j], board, moves, movesIndex, figures);
 		for (int i = oldI; i < movesIndex; i++)
 		{
@@ -518,6 +525,7 @@ struct Figure initFigure(FigureType type, bool alive, bool playerFigure, int x, 
 	f.playerFigure = playerFigure;
 	f.x = x;
 	f.y = y;
+	f.peasantFirstMove = true; //Doesn't affect non-peasant figures
 	return f;
 }
 
@@ -532,7 +540,7 @@ void refreshBoard(struct Figure figures[32], char board[8][8])
 		/*if(f.playerFigure) board[f.x][f.y] = f.type;
 		else board[f.x][f.y] = f.type - 32;*/
 		if (f.alive) board[f.x][f.y] = i;
-		
+
 	}
 }
 
@@ -546,7 +554,7 @@ void initChessboard(struct Figure figures[32], char board[8][8])
 	figures[5] = initFigure(Figure_Bishop, 1, 0, 0, 5);
 	figures[6] = initFigure(Figure_Knight, 1, 0, 0, 6);
 	figures[7] = initFigure(Figure_Rook, 1, 0, 0, 7);
-	for (int i = 0; i < 8; i++) figures[8+i] = initFigure(Figure_Peasant, 1, 0, 1, i);
+	for (int i = 0; i < 8; i++) figures[8 + i] = initFigure(Figure_Peasant, 1, 0, 1, i);
 
 	figures[16] = initFigure(Figure_Rook, 1, 1, 7, 0);
 	figures[17] = initFigure(Figure_Knight, 1, 1, 7, 1);
@@ -558,17 +566,68 @@ void initChessboard(struct Figure figures[32], char board[8][8])
 	figures[23] = initFigure(Figure_Rook, 1, 1, 7, 7);
 	for (int i = 0; i < 8; i++) figures[24 + i] = initFigure(Figure_Peasant, 1, 1, 6, i);
 
-	
+
 	refreshBoard(figures, board);
-	
+
 }
 
 
+struct Move evaluateMoves(char board[8][8], struct Figure figures[32], struct Move moves[], int movesIndex)
+{
+	struct Move tmp;
+	int points;
+	int bestMoveIndex = -1;
+	int bestPoints = -1;
+	for (int i = 0; i < movesIndex; i++)
+	{
+		points = 0;
+		tmp = moves[i];
+		//moves include only moves to empty field or field with an enemy figure
+		if (board[tmp.newX][tmp.newY] == Figure_Empty) points = 0; //if we move to empty field, then this move is neutral
+		else
+		{
+			//otherwise we check which figure we kill and assign appropriate points to this move
+			switch (figures[board[tmp.newX][tmp.newY]].type)
+			{
+			case Figure_Peasant:
+				points = 10;
+				break;
+			case Figure_Rook:
+				points = 50;
+				break;
+			case Figure_Knight:
+				points = 40;
+				break;
+			case Figure_Bishop:
+				points = 50;
+				break;
+			case Figure_Queen:
+				points = 200;
+				break;
+			case Figure_King:
+				points = 1000;
+				break;
+			default:
+				printf("Weird error in evaluateMoves() switch!");
+			}
+		}
+		if (points > bestPoints)
+		{
+			bestPoints = points;
+			bestMoveIndex = i;
+		}
+		moves[i].points = points;
+	}
+	//we return the best move so we don't have to check later
+	return moves[bestMoveIndex];
+}
 
 void printBoard(char board[8][8], struct Figure figures[32])
 {
+	printf("  0 1 2 3 4 5 6 7\n");
 	for (int i = 0; i<8; i++)
 	{
+		printf("%d ", i);
 		for (int j = 0; j < 8; j++)
 		{
 			char c;
@@ -584,11 +643,12 @@ void printBoard(char board[8][8], struct Figure figures[32])
 	}
 }
 
-void makeMove(char board[8][8], struct Move m, struct Figure figures[32]) 
+void makeMove(char board[8][8], struct Move m, struct Figure figures[32])
 {
 	if (board[m.newX][m.newY] == Figure_Empty)
 	{
 		//OK, we can move freely
+		//We don't have to do anything (as of now)
 	}
 	else
 	{
@@ -602,8 +662,84 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32])
 	m.figure.y = m.newY;*/
 	figures[board[m.figure.x][m.figure.y]].x = m.newX;
 	figures[board[m.figure.x][m.figure.y]].y = m.newY;
-	//printf("%d %d\n", figures[1].x, figures[1].y);
+	figures[board[m.figure.x][m.figure.y]].peasantFirstMove = false; //We have to set this to false in case we moved a peasant for the first time.
+																	 //printf("%d %d\n", figures[1].x, figures[1].y);
 	refreshBoard(figures, board);
+}
+
+struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int depth, bool maximizingPlayer)
+{
+	struct MinimaxReturn ret;
+	ret.value = 0;
+
+
+	//PROBLEM TUKAJ JE DA ZMERAJ VRNEM PRAZEN MOVE IN POTEM NEZNA PRIMERJAT/PRIDE DO EXCEPTIONA
+	//FIX!!!!
+
+	if (depth == 0) //|| isTerminalNode(node))
+		return ret; //TODO
+
+
+	if (maximizingPlayer)
+	{
+		ret.value = -999999;
+		struct Move moves[100];
+		int movesIndex = 0;
+		char newBoard[8][8];
+		struct Figure newFigures[32];
+		getAllAvailableMoves(board, moves, movesIndex, figures, !maximizingPlayer);
+		evaluateMoves(board, figures, moves, movesIndex);
+		for (int i = 0; i < movesIndex; i++) {
+
+			copyBoard(board, newBoard);
+			copyFigures(figures, newFigures);
+			makeMove(newBoard, moves[i], newFigures);
+			struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+			//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
+			if (result.value + moves[i].points >= ret.value)
+			{
+				//printf("SETTING BETTER MOVE\n");
+				ret.value = result.value + moves[i].points;
+				ret.bestMove = moves[i];
+			}
+		}
+		return ret;
+		//for each child of node
+		//{
+		//	int v = minimax(child, depth - 1, FALSE);
+		//	bestValue = max(bestValue, v);
+		//}
+	}
+	else // (*minimizing player *)
+	{
+		ret.value = 999999;
+		struct Move moves[100];
+		int movesIndex = 0;
+		char newBoard[8][8];
+		struct Figure newFigures[32];
+		getAllAvailableMoves(board, moves, movesIndex, figures, !maximizingPlayer);
+		evaluateMoves(board, figures, moves, movesIndex);
+		for (int i = 0; i < movesIndex; i++) {
+
+			copyBoard(board, newBoard);
+			copyFigures(figures, newFigures);
+			makeMove(newBoard, moves[i], newFigures);
+			struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+			//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
+			if (result.value + moves[i].points <= ret.value)
+			{
+				//printf("SETTING WORSE MOVE\n");
+				ret.value = result.value + moves[i].points;
+				ret.bestMove = moves[i];
+			}
+		}
+		return ret;
+		//for each child of node
+		//{
+		//	int v = minimax(child, depth - 1, TRUE);
+		//	bestValue = min(bestValue, v);
+		//}
+	}
 }
 
 void randomAI(char board[8][8], struct Figure figures[32])
@@ -623,6 +759,37 @@ void randomAI(char board[8][8], struct Figure figures[32])
 
 }
 
+void bestMoveAI(char board[8][8], struct Figure figures[32])
+{
+	//get all available moves this turn
+	struct Move moves[100];
+	int movesIndex = 0;
+	//true - player moves, false - AI moves
+	getAllAvailableMoves(board, moves, movesIndex, figures, false);
+
+	//Evaluate available moves and execute the most potential one
+	struct Move m = evaluateMoves(board, figures, moves, movesIndex);
+	makeMove(board, m, figures);
+
+	//Print the board to see the result
+	printBoard(board, figures);
+
+}
+
+void miniMaxAI(char board[8][8], struct Figure figures[32])
+{
+
+	struct MinimaxReturn mRet = minimax(board, figures, 4, true);
+	struct Move bestMove = mRet.bestMove;
+
+	printf("%d %d\n", bestMove.newX, bestMove.newY);
+
+	makeMove(board, bestMove, figures);
+
+	//Print the board to see the result
+	printBoard(board, figures);
+}
+
 void playerMove(char board[8][8], struct Figure figures[32])
 {
 	int fx, fy, newX, newY;
@@ -638,7 +805,7 @@ void playerMove(char board[8][8], struct Figure figures[32])
 		scanf_s("%d %d %d %d", &fx, &fy, &newX, &newY);
 		getAllAvailableMoves(board, moves, movesIndex, figures, true);
 
-		
+
 		for (int i = 0; i < movesIndex; i++)
 		{
 			m = moves[i];
@@ -653,7 +820,7 @@ void playerMove(char board[8][8], struct Figure figures[32])
 		if (!validMove) printf("Invalid move. Try again.\n");
 
 	} while (!validMove);
-	
+
 
 	//execute the move
 	makeMove(board, m, figures);
@@ -670,7 +837,9 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	while (!gameOver)
 	{
 		printf("****** AI MOVE ******\n");
-		randomAI(board, figures);
+		//randomAI(board, figures);
+		//bestMoveAI(board, figures);
+		miniMaxAI(board, figures);
 		printf("**** PLAYER MOVE ****\n");
 		playerMove(board, figures);
 		//TODO: gameOver = isGameOver()?
@@ -678,7 +847,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 
 	//TESTING
 	/*for (int i = 0; i < 100; i++)
-		randomAI(board, figures);*/
+	randomAI(board, figures);*/
 
 }
 
