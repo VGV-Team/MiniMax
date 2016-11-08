@@ -45,6 +45,7 @@ struct Move
 	char oldFigureType;
 	//Is this good?
 	int points;
+	bool fatalMove;
 
 };
 
@@ -86,6 +87,7 @@ void addToMoves(struct Move moves[], int& movesIndex, int newX, int newY, char b
 	m.oldX = fig.x;
 	m.oldY = fig.y;
 	m.oldFigureType = fig.type;
+	m.fatalMove = false;
 
 	// if peasant reached the end of the board he is promoted to a queen
 	if (m.figure.type == Figure_Peasant)
@@ -592,8 +594,7 @@ void initChessboard(struct Figure figures[32], char board[8][8])
 
 }
 
-
-struct Move evaluateMoves(char board[8][8], struct Figure figures[32], struct Move moves[], int movesIndex)
+struct Move evaluateMoves(char board[8][8], struct Figure figures[32], struct Move moves[], int movesIndex, bool playerMove = false)
 {
 	struct Move tmp;
 	int points;
@@ -604,7 +605,10 @@ struct Move evaluateMoves(char board[8][8], struct Figure figures[32], struct Mo
 		points = 0;
 		tmp = moves[i];
 		//moves include only moves to empty field or field with an enemy figure
-		if (board[tmp.newX][tmp.newY] == Figure_Empty) points = 0; //if we move to empty field, then this move is neutral
+		if (board[tmp.newX][tmp.newY] == Figure_Empty)
+		{
+			points = 0; //if we move to empty field, then this move is neutral
+		}
 		else
 		{
 			//otherwise we check which figure we kill and assign appropriate points to this move
@@ -617,7 +621,7 @@ struct Move evaluateMoves(char board[8][8], struct Figure figures[32], struct Mo
 				points = 50;
 				break;
 			case Figure_Knight:
-				points = 40;
+				points = 50;
 				break;
 			case Figure_Bishop:
 				points = 50;
@@ -626,12 +630,20 @@ struct Move evaluateMoves(char board[8][8], struct Figure figures[32], struct Mo
 				points = 200;
 				break;
 			case Figure_King:
+				// TODO: generalize this! Now only works for AI vs player
 				points = 1000;
+				moves[i].fatalMove = true;
 				break;
 			default:
 				printf("Weird error in evaluateMoves() switch!");
 			}
 		}
+		if(figures[board[tmp.oldX][tmp.oldY]].type == Figure_Peasant)
+		{
+			if (tmp.figure.playerFigure && tmp.newX == 0 || !tmp.figure.playerFigure && tmp.newX == 7) points += 175;
+		}
+
+
 		if (points > bestPoints)
 		{
 			bestPoints = points;
@@ -762,8 +774,14 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			//makeMove(newBoard, moves[i], newFigures);
 
 			makeMove(board, moves[i], figures);
-			//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
-			struct MinimaxReturn result = minimax(board, figures, depth - 1, !maximizingPlayer);
+			struct MinimaxReturn result;
+			if (moves[i].fatalMove != true)
+			{
+				//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+				result = minimax(board, figures, depth - 1, !maximizingPlayer);
+			}
+			else result = minimax(board, figures, 0, !maximizingPlayer);
+
 			undoMove(board, moves[i], figures);
 
 			result.value = -result.value;
