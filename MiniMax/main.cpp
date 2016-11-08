@@ -853,14 +853,14 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 void miniMaxAI(char board[8][8], struct Figure figures[32])
 {
 	clock_t begin = clock();
-	struct MinimaxReturn mRet = minimax(board, figures, 6, true);
+	struct MinimaxReturn mRet = minimax(board, figures, 5, true);
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 	printf("Used %lf seconds.\n", elapsed_secs);
 
 	struct Move bestMove = mRet.bestMove;
 
-	printf("%d %d %d\n", bestMove.newX, bestMove.newY, bestMove.points);
+	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
 
@@ -903,7 +903,7 @@ void playerMove(char board[8][8], struct Figure figures[32])
 
 
 	//execute the move
-	makeMove(board, m, figures);
+	makeMove(board, m, figures, true);
 
 	printBoard(board, figures);
 
@@ -929,12 +929,12 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 
 
 		printf("**** PLAYER MOVE ****\n");
-		//playerMove(board, figures);
-		randomAI(board, figures, true);
+		playerMove(board, figures);
+		//randomAI(board, figures, true);
 		
 		if (gameOver)
 		{
-			printf("**** AI won. ****\n");
+			printf("**** Player won. ****\n");
 			break;
 		}
 	}
