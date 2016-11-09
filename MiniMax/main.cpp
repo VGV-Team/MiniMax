@@ -867,6 +867,210 @@ void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
 
 }
 
+//Check if figure is under attack
+bool isUnderAttack(Figure f, struct Figure figures[32], char board[8][8])
+{
+	int x, y;
+	//check up
+	x = f.x - 1;
+	y = f.y;
+	while (x >= 0 && board[x][y] == Figure_Empty) x--;
+	if (x >= 0)
+	{
+		Figure attacker = figures[board[x][y]];
+		if (attacker.playerFigure != f.playerFigure)
+		{
+			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return true;
+			if (x == f.x - 1 && attacker.type == Figure_King) return true;
+		}
+	}
+	//check down
+	x = f.x + 1;
+	y = f.y;
+	while (x < 8 && board[x][y] == Figure_Empty) x++;
+	if (x < 8)
+	{
+		Figure attacker = figures[board[x][y]];
+		if (attacker.playerFigure != f.playerFigure)
+		{
+			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return true;
+			if (x == f.x + 1 && attacker.type == Figure_King) return true;
+		}
+		
+	}
+	//check right
+	x = f.x;
+	y = f.y + 1;
+	while (y < 8 && board[x][y] == Figure_Empty) y++;
+	if (y < 8)
+	{
+		Figure attacker = figures[board[x][y]];
+		if (attacker.playerFigure != f.playerFigure)
+		{
+			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return true;
+			if (y == f.y + 1 && attacker.type == Figure_King) return true;
+		}
+
+	}
+	//check left
+	x = f.x;
+	y = f.y - 1;
+	while (y >= 0 && board[x][y] == Figure_Empty) y--;
+	if (y >= 0)
+	{
+		Figure attacker = figures[board[x][y]];
+		if (attacker.playerFigure != f.playerFigure)
+		{
+			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return true;
+			if (y == f.y - 1 && attacker.type == Figure_King) return true;
+		}
+	}
+	//check diagonal up right
+	x = f.x - 1;
+	y = f.y + 1;
+	while (y < 8 && x >= 0 && board[x][y] == Figure_Empty) { x--; y++; }
+	if (y < 8 && x >= 0)
+	{
+		Figure attacker = figures[board[x][y]];
+		if (attacker.playerFigure != f.playerFigure)
+		{
+			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return true;
+			if (y == f.y + 1 && x == f.x - 1 && attacker.type == Figure_King) return true;
+		}
+	}
+	//check diagonal down right
+	x = f.x + 1;
+	y = f.y + 1;
+	while (y < 8 && x < 8 && board[x][y] == Figure_Empty) { x++; y++; }
+	if (y < 8 && x < 8)
+	{
+		Figure attacker = figures[board[x][y]];
+		if (attacker.playerFigure != f.playerFigure)
+		{
+			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return true;
+			if (y == f.y + 1 && x == f.x + 1 && attacker.type == Figure_King) return true;
+		}
+	}
+	//check diagonal down left
+	x = f.x + 1;
+	y = f.y - 1;
+	while (y >= 0 && x < 8 && board[x][y] == Figure_Empty) { x++; y--; }
+	if (y >= 0 && x < 8)
+	{
+		Figure attacker = figures[board[x][y]];
+		if (attacker.playerFigure != f.playerFigure)
+		{
+			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return true;
+			if (y == f.y - 1 && x == f.x + 1 && attacker.type == Figure_King) return true;
+		}
+	}
+	//check diagonal up left
+	x = f.x - 1;
+	y = f.y - 1;
+	while (y >= 0 && x >= 0 && board[x][y] == Figure_Empty) { x--; y--; }
+	if (y >= 0 && x >= 0)
+	{
+		Figure attacker = figures[board[x][y]];
+		if (attacker.playerFigure != f.playerFigure)
+		{
+			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return true;
+			if (y == f.y - 1 && x == f.x - 1 && attacker.type == Figure_King) return true;
+		}
+	}
+
+	//check horses
+	x = f.x;
+	y = f.y;
+
+	//up right
+	if (x - 2 >= 0 && y + 1 < 8)
+	{
+		Figure attacker = figures[board[x-2][y+1]];
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+	}
+	if (x - 1 >= 0 && y + 2 < 8)
+	{
+		Figure attacker = figures[board[x-1][y+2]];
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+	}
+	//down right
+	if (x + 1 < 8 && y + 2 < 8)
+	{
+		Figure attacker = figures[board[x+1][y+2]];
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+	}
+	if (x + 2 < 8 && y + 1 < 8)
+	{
+		Figure attacker = figures[board[x+2][y+1]];
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+	}
+	//down left
+	if (x + 2 < 8 && y - 1 >= 0)
+	{
+		Figure attacker = figures[board[x+2][y-1]];
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+	}
+	if (x + 1 < 8 && y - 2 >= 0)
+	{
+		Figure attacker = figures[board[x+1][y-2]];
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+	}
+	//up left
+	if (x - 1 >= 0 && y - 2 >= 0)
+	{
+		Figure attacker = figures[board[x-1][y-2]];
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+	}
+	if (x - 2 >= 0 && y - 1 >= 0)
+	{
+		Figure attacker = figures[board[x-2][y-1]];
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+	}
+
+	//check peasants
+	x = f.x;
+	y = f.y;
+	if (f.playerFigure)
+	{
+		//look for peasants that are up
+		x = f.x - 1;
+		y = f.y + 1;
+		if (x >= 0 && y < 8 && board[x][y] != Figure_Empty)
+		{
+			Figure attacker = figures[board[x][y]];
+			if (!attacker.playerFigure && attacker.type == Figure_Peasant) return true;
+		}
+		x = f.x - 1;
+		y = f.y - 1;
+		if (x >= 0 && y >= 0 && board[x][y] != Figure_Empty)
+		{
+			Figure attacker = figures[board[x][y]];
+			if (!attacker.playerFigure && attacker.type == Figure_Peasant) return true;
+		}
+	}
+	else
+	{
+		//AI figure, look for peasants down
+		x = f.x + 1;
+		y = f.y + 1;
+		if (x < 8 && y < 8 && board[x][y] != Figure_Empty)
+		{
+			Figure attacker = figures[board[x][y]];
+			if (attacker.playerFigure && attacker.type == Figure_Peasant) return true;
+		}
+		x = f.x + 1;
+		y = f.y - 1;
+		if (x >= 0 && y >= 0 && board[x][y] != Figure_Empty)
+		{
+			Figure attacker = figures[board[x][y]];
+			if (attacker.playerFigure && attacker.type == Figure_Peasant) return true;
+		}
+	}
+
+	return false;
+
+}
+
 unsigned long long int numOfExecutions;
 
 struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int depth, bool maximizingPlayer)
@@ -1009,7 +1213,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth)
 	
 }
 
-struct Move m;
+
 void playerMove(char board[8][8], struct Figure figures[32])
 {
 	int fx, fy, newX, newY;
@@ -1018,7 +1222,7 @@ void playerMove(char board[8][8], struct Figure figures[32])
 	struct Move moves[100];
 	int movesIndex = 0;
 	
-
+	struct Move m;
 	
 
 	//we get user input and check if it is valid; we do that until we get a valid move
@@ -1066,8 +1270,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	while (true)
 	{
 		printf("**** PLAYER MOVE ****\n");
-		//playerMove(board, figures);
-		randomAI(board, figures, true);
+		playerMove(board, figures);
+		//randomAI(board, figures, true);
 
 		//Print the board to see the result
 		printBoard(board, figures);
@@ -1081,10 +1285,16 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		printf("****** AI MOVE ******\n");
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
-		miniMaxAI(board, figures, 5);
+		//miniMaxAI(board, figures, 5);
 
 		//Print the board to see the result
 		printBoard(board, figures);
+
+		if (isUnderAttack(figures[16], figures, board))
+		{
+			printf("UNDER ATTACK\n");
+		}
+		
 
 		if (gameOver)
 		{
