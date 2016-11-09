@@ -4,7 +4,7 @@
 
 
 
-// TODO: rušada - later
+// TODO: rušada - dodaj preverjanje za sah
 // TODO: šah = edina poteza - later
 // TODO: endless game with two kings - later
 // TODO: pat
@@ -31,8 +31,8 @@ struct Figure
 	bool playerFigure;
 	bool alive;
 
-	//Bool to check if the peasant can be moved two fields (first peasant move)
-	bool peasantFirstMove;
+	//Bool to check if the figure already moved
+	bool firstMove;
 };
 
 struct Move
@@ -125,7 +125,7 @@ void getAvailableMoves(Figure f, char board[8][8], struct Move moves[], int& mov
 				addToMoves(moves, movesIndex, f.x - 1, f.y, board, f);
 			}
 			//look up 2 fields - first peasant move
-			if (f.peasantFirstMove && f.x - 2 >= 0 && board[f.x - 2][f.y] == Figure_Empty)
+			if (f.firstMove && f.x - 2 >= 0 && board[f.x - 2][f.y] == Figure_Empty)
 			{
 				addToMoves(moves, movesIndex, f.x - 2, f.y, board, f);
 			}
@@ -148,7 +148,7 @@ void getAvailableMoves(Figure f, char board[8][8], struct Move moves[], int& mov
 				addToMoves(moves, movesIndex, f.x + 1, f.y, board, f);
 			}
 			//look down 2 fields - first peasant move
-			if (f.peasantFirstMove && f.x + 2 < 8 && board[f.x + 2][f.y] == Figure_Empty)
+			if (f.firstMove && f.x + 2 < 8 && board[f.x + 2][f.y] == Figure_Empty)
 			{
 				addToMoves(moves, movesIndex, f.x + 2, f.y, board, f);
 			}
@@ -506,6 +506,73 @@ void getAvailableMoves(Figure f, char board[8][8], struct Move moves[], int& mov
 		if (y - 1 >= 0 && !isFriendly(board, f, x, y - 1, figures)) addToMoves(moves, movesIndex, x, y - 1, board, f);
 		//look up left
 		if (x - 1 >= 0 && y - 1 >= 0 && !isFriendly(board, f, x - 1, y - 1, figures)) addToMoves(moves, movesIndex, x - 1, y - 1, board, f);
+
+
+		// castling
+
+		// bottom left
+		if(
+			f.firstMove && 
+			f.playerFigure && 
+			board[7][0] != Figure_Empty && 
+			figures[board[7][0]].playerFigure && 
+			figures[board[7][0]].type == Figure_Rook &&
+			figures[board[7][0]].firstMove &&
+
+			board[7][1] == Figure_Empty &&
+			board[7][2] == Figure_Empty &&
+			board[7][3] == Figure_Empty
+			)
+		{
+			addToMoves(moves, movesIndex, 7, 2, board, f);
+		}
+		// bottom right
+		if (
+			f.firstMove &&
+			f.playerFigure &&
+			board[7][7] != Figure_Empty &&
+			figures[board[7][7]].playerFigure &&
+			figures[board[7][7]].type == Figure_Rook &&
+			figures[board[7][7]].firstMove &&
+
+			board[7][5] == Figure_Empty &&
+			board[7][6] == Figure_Empty
+			)
+		{
+			addToMoves(moves, movesIndex, 7, 6, board, f);
+		}
+		// top left
+		if (
+			f.firstMove &&
+			!f.playerFigure &&
+			board[7][7] != Figure_Empty &&
+			!figures[board[0][0]].playerFigure &&
+			figures[board[0][0]].type == Figure_Rook &&
+			figures[board[0][0]].firstMove &&
+
+			board[0][1] == Figure_Empty &&
+			board[0][2] == Figure_Empty &&
+			board[0][3] == Figure_Empty
+			)
+		{
+			addToMoves(moves, movesIndex, 0, 2, board, f);
+		}
+		// top right
+		if (
+			f.firstMove &&
+			!f.playerFigure &&
+			board[0][7] != Figure_Empty &&
+			!figures[board[0][7]].playerFigure &&
+			figures[board[0][7]].type == Figure_Rook &&
+			figures[board[0][7]].firstMove &&
+
+			board[0][5] == Figure_Empty &&
+			board[0][6] == Figure_Empty
+			)
+		{
+			addToMoves(moves, movesIndex, 0, 6, board, f);
+		}
+
 	}
 
 }
@@ -548,7 +615,7 @@ struct Figure initFigure(FigureType type, bool alive, bool playerFigure, int x, 
 	f.playerFigure = playerFigure;
 	f.x = x;
 	f.y = y;
-	f.peasantFirstMove = true; //Doesn't affect non-peasant figures
+	f.firstMove = true; //Doesn't affect non-peasant figures
 	return f;
 }
 
@@ -572,8 +639,8 @@ void initChessboard(struct Figure figures[32], char board[8][8])
 	figures[0] = initFigure(Figure_Rook, 1, 0, 0, 0);
 	figures[1] = initFigure(Figure_Knight, 1, 0, 0, 1);
 	figures[2] = initFigure(Figure_Bishop, 1, 0, 0, 2);
-	figures[3] = initFigure(Figure_King, 1, 0, 0, 3);
-	figures[4] = initFigure(Figure_Queen, 1, 0, 0, 4);
+	figures[3] = initFigure(Figure_Queen, 1, 0, 0, 3);
+	figures[4] = initFigure(Figure_King, 1, 0, 0, 4);
 	figures[5] = initFigure(Figure_Bishop, 1, 0, 0, 5);
 	figures[6] = initFigure(Figure_Knight, 1, 0, 0, 6);
 	figures[7] = initFigure(Figure_Rook, 1, 0, 0, 7);
@@ -582,8 +649,9 @@ void initChessboard(struct Figure figures[32], char board[8][8])
 	figures[16] = initFigure(Figure_Rook, 1, 1, 7, 0);
 	figures[17] = initFigure(Figure_Knight, 1, 1, 7, 1);
 	figures[18] = initFigure(Figure_Bishop, 1, 1, 7, 2);
-	figures[19] = initFigure(Figure_King, 1, 1, 7, 3);
-	figures[20] = initFigure(Figure_Queen, 1, 1, 7, 4);
+	figures[19] = initFigure(Figure_Queen, 1, 1, 7, 3);
+	figures[20] = initFigure(Figure_King, 1, 1, 7, 4);
+
 	figures[21] = initFigure(Figure_Bishop, 1, 1, 7, 5);
 	figures[22] = initFigure(Figure_Knight, 1, 1, 7, 6);
 	figures[23] = initFigure(Figure_Rook, 1, 1, 7, 7);
@@ -704,6 +772,28 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool r
 	/*m.figure.x = m.newX;
 	m.figure.y = m.newY;*/
 
+	
+	// castling
+	if(m.figure.type == Figure_King && (m.oldY - m.newY == 2 || m.oldY - m.newY == -2))
+	{
+		if(m.oldY - m.newY > 0) // move left
+		{
+			board[m.newX][3] = board[m.figure.x][0];
+			figures[board[m.figure.x][0]].x = m.newX;
+			figures[board[m.figure.x][0]].y = 3;
+			figures[board[m.figure.x][0]].firstMove = false;
+			board[m.figure.x][0] = Figure_Empty;
+		}
+		else // move right
+		{
+			board[m.newX][5] = board[m.figure.x][7];
+			figures[board[m.figure.x][7]].x = m.newX;
+			figures[board[m.figure.x][7]].y = 5;
+			figures[board[m.figure.x][7]].firstMove = false;
+			board[m.figure.x][7] = Figure_Empty;
+		}
+	}
+	
 
 	// changes peasant to queen if he reached end of the board
 	figures[board[m.figure.x][m.figure.y]].type = m.figure.type;
@@ -713,7 +803,7 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool r
 
 	figures[board[m.figure.x][m.figure.y]].x = m.newX;
 	figures[board[m.figure.x][m.figure.y]].y = m.newY;
-	figures[board[m.figure.x][m.figure.y]].peasantFirstMove = false; //We have to set this to false in case we moved a peasant for the first time.
+	figures[board[m.figure.x][m.figure.y]].firstMove = false; //We have to set this to false in case we moved a peasant for the first time.
 																	 //printf("%d %d\n", figures[1].x, figures[1].y);
 
 	// update board by clearing figure that moved
@@ -726,10 +816,38 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool r
 
 void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
 {
+
+	// un castling
+	if (m.figure.type == Figure_King && (m.oldY - m.newY == 2 || m.oldY - m.newY == -2))
+	{
+		if (m.oldY - m.newY > 0) // move left
+		{
+			board[m.newX][0] = board[m.figure.x][3];
+			figures[board[m.figure.x][3]].x = m.oldX;
+			figures[board[m.figure.x][3]].y = 0;
+			figures[board[m.figure.x][3]].firstMove = true;
+			board[m.figure.x][3] = Figure_Empty;
+
+			figures[board[m.figure.x][2]].firstMove = true;
+		}
+		else // move right
+		{
+			board[m.newX][7] = board[m.figure.x][5];
+			figures[board[m.figure.x][5]].x = m.newX;
+			figures[board[m.figure.x][5]].y = 7;
+			figures[board[m.figure.x][5]].firstMove = true;
+			board[m.figure.x][5] = Figure_Empty;
+
+			figures[board[m.figure.x][6]].firstMove = true;
+		}
+	}
+
+
+
 	// reverse peasant first move
 	if (figures[board[m.newX][m.newY]].type == Figure_Peasant)
 	{
-		if (m.figure.playerFigure && m.oldX == 6 || !m.figure.playerFigure && m.oldX == 1) figures[board[m.newX][m.newY]].peasantFirstMove = true;
+		if (m.figure.playerFigure && m.oldX == 6 || !m.figure.playerFigure && m.oldX == 1) figures[board[m.newX][m.newY]].firstMove = true;
 	}
 
 
@@ -891,6 +1009,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth)
 	
 }
 
+struct Move m;
 void playerMove(char board[8][8], struct Figure figures[32])
 {
 	int fx, fy, newX, newY;
@@ -898,17 +1017,26 @@ void playerMove(char board[8][8], struct Figure figures[32])
 	bool validMove = false;
 	struct Move moves[100];
 	int movesIndex = 0;
-	struct Move m;
+	
 
+	
 
 	//we get user input and check if it is valid; we do that until we get a valid move
 	do {
 		//Input format: figureX, figureY, newX, newY
 		scanf_s("%d %d %d %d", &fx, &fy, &newX, &newY);
 
+		if (fx == -1)
+		{
+			undoMove(board, m, figures);
+			continue;
+		}
+
 		movesIndex = 0;
 		getAllAvailableMoves(board, moves, movesIndex, figures, true);
 		
+		
+
 		for (int i = 0; i < movesIndex; i++)
 		{
 			m = moves[i];
@@ -933,9 +1061,23 @@ void playerMove(char board[8][8], struct Figure figures[32])
 void gameLoop(char board[8][8], struct Figure figures[32])
 {
 	srand(time(NULL));
+	printBoard(board, figures);
 
 	while (true)
 	{
+		printf("**** PLAYER MOVE ****\n");
+		//playerMove(board, figures);
+		randomAI(board, figures, true);
+
+		//Print the board to see the result
+		printBoard(board, figures);
+
+		if (gameOver)
+		{
+			printf("**** Player won. ****\n");
+			break;
+		}
+
 		printf("****** AI MOVE ******\n");
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
@@ -950,19 +1092,6 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 			break;
 		}
 
-
-		printf("**** PLAYER MOVE ****\n");
-		playerMove(board, figures);
-		//randomAI(board, figures, true);
-
-		//Print the board to see the result
-		printBoard(board, figures);
-
-		if (gameOver)
-		{
-			printf("**** Player won. ****\n");
-			break;
-		}
 	}
 
 	
