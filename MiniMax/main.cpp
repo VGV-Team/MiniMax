@@ -784,7 +784,12 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
 				result = minimax(board, figures, depth - 1, !maximizingPlayer);
 			}
-			else result = minimax(board, figures, 0, !maximizingPlayer);
+			else
+			{
+				result = minimax(board, figures, 0, !maximizingPlayer);
+				moves[i].points *= depth;
+				
+			}
 
 			undoMove(board, moves[i], figures);
 
@@ -947,8 +952,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 
 
 		printf("**** PLAYER MOVE ****\n");
-		//playerMove(board, figures);
-		randomAI(board, figures, true);
+		playerMove(board, figures);
+		//randomAI(board, figures, true);
 
 		//Print the board to see the result
 		printBoard(board, figures);
