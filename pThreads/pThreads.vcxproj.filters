@@ -28,5 +28,17 @@
     <ClInclude Include="Posix\pthread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Posix\sched.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Posix\semaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Posix\pthreadVSE2.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="Posix\pthreadVSE2.lib" />
   </ItemGroup>
 </Project>
