@@ -18,9 +18,15 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="MotivationalPoster.gif" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{701BEFEA-DCAF-4769-A9C5-51ACA52E0892}</ProjectGuid>
-    <RootNamespace>MiniMax</RootNamespace>
+    <ProjectGuid>{E459F12A-CC31-4BDF-ADD3-61D997241CF3}</ProjectGuid>
+    <RootNamespace>Sequential</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
