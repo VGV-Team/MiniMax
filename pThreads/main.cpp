@@ -1195,7 +1195,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 void* minimaxParallel(void* minimaxParllelStruct)
 {
 	struct MinimaxParallelStruct* s = (struct MinimaxParallelStruct*) minimaxParllelStruct;
-	printf("Depth %d\n", s->depth);
+	//printf("Depth %d\n", s->depth);
 
 
 	char board[8][8];
@@ -1257,10 +1257,23 @@ void* minimaxParallel(void* minimaxParllelStruct)
 		}
 	}
 
+	
+	//printf("Return %d\n", ret.value);
+	struct  MinimaxReturn* q = (struct  MinimaxReturn*)malloc(sizeof(struct  MinimaxReturn));
 
-	printf("Return %d\n", ret.value);
-	return (void*)&ret;
+	q->value = ret.value;
+	q->bestMove.figure.x = ret.bestMove.figure.x;
+	q->bestMove.figure.y = ret.bestMove.figure.y;
+	q->bestMove.figure.type = ret.bestMove.figure.type;
 
+	q->bestMove.newX = ret.bestMove.newX;
+	q->bestMove.newY = ret.bestMove.newY;
+	q->bestMove.oldX = ret.bestMove.oldX;
+	q->bestMove.oldY = ret.bestMove.oldY;
+	
+	//return (void*)&ret;
+	return q;
+	//return (void*)&(*&ret);
 }
 
 void randomAI(char board[8][8], struct Figure figures[32], bool isPlayer = false)
@@ -1301,20 +1314,21 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 	s.depth = depth;
 	copyFigures(figures, s.figures);
 	s.maximizingPlayer = AI;
-	//struct MinimaxReturn* mRet = (struct MinimaxReturn*)minimaxParallel((void*)&s);
-	struct MinimaxReturn mRet = minimax(board, figures, depth, AI);
+	struct MinimaxReturn* mRet = (struct MinimaxReturn*)minimaxParallel((void*)&s);
+	//struct MinimaxReturn mRet = minimax(board, figures, depth, AI);
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 	printf("Used %lf seconds.\n", elapsed_secs);
 	//printf("%d::%lf::%llu::%d::release\n", i, elapsed_secs, numOfExecutions, depth);
 
-	//struct Move bestMove = mRet->bestMove;
-	struct Move bestMove = mRet.bestMove;
+	struct Move bestMove = mRet->bestMove;
+	//struct Move bestMove = mRet.bestMove;
 
-	//printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet->value);
-	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
+	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet->value);
+	//printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
+	free(mRet);
 
 	
 }
@@ -1376,9 +1390,9 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	while (true)
 	{
 		printf("**** PLAYER MOVE ****\n");
-		playerMove(board, figures);
+		//playerMove(board, figures);
 		//randomAI(board, figures, true);
-		//miniMaxAI(board, figures, 3, false);
+		miniMaxAI(board, figures, 3, false);
 		//Print the board to see the result
 		printBoard(board, figures);
 
