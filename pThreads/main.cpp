@@ -1309,12 +1309,15 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 {
 	numOfExecutions = 0;
 	clock_t begin = clock();
-	struct MinimaxParallelStruct s;
-	copyBoard(board, s.board);
-	s.depth = depth;
-	copyFigures(figures, s.figures);
-	s.maximizingPlayer = AI;
-	struct MinimaxReturn* mRet = (struct MinimaxReturn*)minimaxParallel((void*)&s);
+
+	struct MinimaxParallelStruct* s = (struct MinimaxParallelStruct*)malloc(sizeof(struct MinimaxParallelStruct));
+	copyBoard(board, s->board);
+	s->depth = depth;
+	copyFigures(figures, s->figures);
+	s->maximizingPlayer = AI;
+	struct MinimaxReturn* mRet = (struct MinimaxReturn*)minimaxParallel((void*)s);
+	
+	
 	//struct MinimaxReturn mRet = minimax(board, figures, depth, AI);
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
@@ -1328,6 +1331,8 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 	//printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
+
+	free(s);
 	free(mRet);
 
 	
