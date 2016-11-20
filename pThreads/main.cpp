@@ -4,7 +4,9 @@
 #include <time.h>  
 #include <stdlib.h>
 #include <pthread.h>
-#define NUM_THREADS 5
+#define NUM_THREADS 8
+#define PARALLELIZE_DEPTH 5
+#define START_DEPTH 5
 
 // TODO: šah = edina poteza - later
 // TODO: endless game by moving the same two figures
@@ -17,6 +19,9 @@ pthread_t threads[NUM_THREADS];
 
 pthread_barrier_t barrier;
 int numBarriers = NUM_THREADS;     
+
+
+struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int depth, bool maximizingPlayer);
 
 enum FigureType
 {
@@ -1091,7 +1096,109 @@ struct MinimaxParallelStruct
 	struct Figure figures[32]; 
 	int depth;
 	bool maximizingPlayer;
+	struct Move moveToMake;
+
+	//RETURN VALUES
+	int value;
+	struct Move bestMove;
+	volatile bool done;
 };
+
+void* minimaxParallel(void* minimaxParllelStruct)
+{
+	struct MinimaxParallelStruct* s = (struct MinimaxParallelStruct*) minimaxParllelStruct;
+	//printf("Depth %d\n", s->depth);
+	//printf("ZACETEK\n");
+
+	char board[8][8];
+	copyBoard(s->board, board);
+	struct Figure figures[32];
+	copyFigures(s->figures, figures);
+	int depth = s->depth;
+	bool maximizingPlayer = s->maximizingPlayer;
+
+	makeMove(board, s->moveToMake, figures);
+
+	numOfExecutions++;
+	struct MinimaxReturn ret;
+	ret.value = 0;
+
+	if (depth == 0) {
+		s->done = true;
+		return (void*)&ret; //TODO
+	}//|| isTerminalNode(node))
+		
+
+
+							//if (maximizingPlayer)
+							//{
+	ret.value = -999999;
+	struct Move moves[100];
+	int movesIndex = 0;
+	char newBoard[8][8];
+	struct Figure newFigures[32];
+	getAllAvailableMoves(board, moves, movesIndex, figures, !maximizingPlayer);
+	//printf("THREAD: %d\n", depth);
+	evaluateMoves(board, figures, moves, movesIndex);
+
+	//printf("KONEC 1\n");
+
+	for (int i = 0; i < movesIndex; i++) {
+
+		//copyBoard(board, newBoard);
+		//copyFigures(figures, newFigures);
+		//makeMove(newBoard, moves[i], newFigures);
+
+		makeMove(board, moves[i], figures);
+		struct MinimaxReturn result;
+		if (moves[i].fatalMove != true)
+		{
+			//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+			result = minimax(board, figures, depth - 1, !maximizingPlayer);
+		}
+		else
+		{
+			result = minimax(board, figures, 0, !maximizingPlayer);
+			moves[i].points *= depth;
+
+		}
+
+		undoMove(board, moves[i], figures);
+
+		result.value = -result.value;
+		//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
+		if (result.value + moves[i].points >= ret.value)
+		{
+			//printf("SETTING BETTER MOVE\n");
+			ret.value = result.value + moves[i].points;
+			ret.bestMove = moves[i];
+		}
+	}
+
+	//printf("KONEC 2\n");
+	//printf("Return %d\n", ret.value);
+	//struct  MinimaxReturn* q = (struct  MinimaxReturn*)malloc(sizeof(struct  MinimaxReturn));
+
+	undoMove(board, s->moveToMake, figures);
+
+	s->value = ret.value;
+	s->bestMove.figure.x = ret.bestMove.figure.x;
+	s->bestMove.figure.y = ret.bestMove.figure.y;
+	s->bestMove.figure.type = ret.bestMove.figure.type;
+
+	s->bestMove.newX = ret.bestMove.newX;
+	s->bestMove.newY = ret.bestMove.newY;
+	s->bestMove.oldX = ret.bestMove.oldX;
+	s->bestMove.oldY = ret.bestMove.oldY;
+
+	s->done = true;
+
+	//printf("KONEC 3\n");
+
+	//return (void*)&ret;
+	return s;
+	//return (void*)&(*&ret);
+}
 
 struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int depth, bool maximizingPlayer)
 {
@@ -1099,8 +1206,10 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	struct MinimaxReturn ret;
 	ret.value = 0;
 
-	if (depth == 0) //|| isTerminalNode(node))
-		return ret; //TODO
+	if (depth == 0) {
+		return ret;
+	} //|| isTerminalNode(node))
+		 //TODO
 
 
 	//if (maximizingPlayer)
@@ -1114,37 +1223,175 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		
 		evaluateMoves(board, figures, moves, movesIndex);
 		//if (!firstLevel) {
+
+		struct MinimaxParallelStruct* s[NUM_THREADS];
+		if (depth == PARALLELIZE_DEPTH)
+		{
+			printf("movesIndex: %d, DEPTH: %d\n", movesIndex, depth);
+			for (int t = 0; t < NUM_THREADS; t++)
+			{
+				s[t] = (struct MinimaxParallelStruct*)malloc(sizeof(struct MinimaxParallelStruct));
+				s[t]->done = true;
+				s[t]->value = -1;
+			}
+
+		}
+			//TODO: COUNTER ???????
+		//int counter = 0;
+		struct MinimaxReturn result;
 			for (int i = 0; i < movesIndex; i++) {
 
 				//copyBoard(board, newBoard);
 				//copyFigures(figures, newFigures);
 				//makeMove(newBoard, moves[i], newFigures);
 
-				makeMove(board, moves[i], figures);
-				struct MinimaxReturn result;
-				if (moves[i].fatalMove != true)
+				
+
+				
+				// PARALLELIZATION
+				if (depth == PARALLELIZE_DEPTH) 
 				{
-					//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
-					result = minimax(board, figures, depth - 1, !maximizingPlayer);
+					// Do until we create and start a thread
+					bool ok = false;
+					while (!ok)
+					{
+						for (int t = 0; t < NUM_THREADS; t++)
+						{
+							// Check if thread hasn't done anything yet
+							if (s[t]->done == true && s[t]->value == -1) 
+							{
+								ok = true;
+								copyBoard(board, s[t]->board);
+								if (moves[i].fatalMove != true)
+								{
+									//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+									//result = minimax(board, figures, depth - 1, !maximizingPlayer);
+									s[t]->depth = depth - 1;
+								}
+								else
+								{
+									s[t]->depth = 0;
+									moves[i].points *= depth;
+								}
+								copyFigures(figures, s[t]->figures);
+								s[t]->maximizingPlayer = !maximizingPlayer;
+								//s[counter]->bestMove = NULL;
+								s[t]->value = 0;
+								s[t]->done = false;
+								s[t]->moveToMake = moves[i];
+								pthread_create(&threads[t], NULL, minimaxParallel, (void *)s[t]);
+								break;
+							}
+							// Check if thread is finished and has something to return
+							else if (s[t]->done == true && s[t]->value != -1) 
+							{
+								ok = true;
+								result.bestMove = s[t]->bestMove;
+								result.value = s[t]->value;
+
+								//undoMove(board, moves[i], figures);
+
+								result.value = -result.value;
+								if (result.value + s[t]->moveToMake.points >= ret.value)
+								{
+									//printf("SETTING BETTER MOVE\n");
+									ret.value = result.value + s[t]->moveToMake.points;
+									ret.bestMove = s[t]->moveToMake;
+								}
+
+								if (moves[i].fatalMove != true)
+								{
+									//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+									//result = minimax(board, figures, depth - 1, !maximizingPlayer);
+									s[t]->depth = depth - 1;
+								}
+								else
+								{
+									s[t]->depth = 0;
+									moves[i].points *= depth;
+								}
+
+								copyBoard(board, s[t]->board);
+								
+								copyFigures(figures, s[t]->figures);
+								s[t]->maximizingPlayer = !maximizingPlayer;
+								//s[counter]->bestMove = NULL;
+								s[t]->value = 0;
+								s[t]->done = false;
+								s[t]->moveToMake = moves[i];
+								pthread_create(&threads[t], NULL, minimaxParallel, (void *)s[t]);
+								break;
+							}
+						}
+					}
+
+					
 				}
 				else
 				{
-					result = minimax(board, figures, 0, !maximizingPlayer);
-					moves[i].points *= depth;
+					makeMove(board, moves[i], figures);
+					if (moves[i].fatalMove != true)
+					{
+						//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+						result = minimax(board, figures, depth - 1, !maximizingPlayer);
+					}
+					else
+					{
+						result = minimax(board, figures, 0, !maximizingPlayer);
+						moves[i].points *= depth;
+					}
 
+					undoMove(board, moves[i], figures);
+
+					result.value = -result.value;
+					//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
+					if (result.value + moves[i].points >= ret.value)
+					{
+						//printf("SETTING BETTER MOVE\n");
+						ret.value = result.value + moves[i].points;
+						ret.bestMove = moves[i];
+					}
 				}
 
-				undoMove(board, moves[i], figures);
+			}
 
-				result.value = -result.value;
-				//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
-				if (result.value + moves[i].points >= ret.value)
+			//Check until all threads are done
+			if (depth == PARALLELIZE_DEPTH)
+			{
+				bool allDone = true;
+				do {
+					allDone = true;
+					for (int t = 0; t < NUM_THREADS; t++)
+					{
+						//printf("ALO");
+						if (s[t]->done == true)
+						{
+							result.bestMove = s[t]->bestMove;
+							result.value = s[t]->value;
+
+							result.value = -result.value;
+							if (result.value >= ret.value)
+							{
+								ret.value = result.value;
+								ret.bestMove = s[t]->moveToMake;
+							}
+						}
+						else
+						{
+							allDone = false;
+						}
+						
+					}
+				} while (!allDone);
+
+				for (int t = 0; t < NUM_THREADS; t++)
 				{
-					//printf("SETTING BETTER MOVE\n");
-					ret.value = result.value + moves[i].points;
-					ret.bestMove = moves[i];
+					free(s[t]);
 				}
 			}
+
+			
+
 		//}
 		//else
 		//{
@@ -1192,89 +1439,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 }
 
 
-void* minimaxParallel(void* minimaxParllelStruct)
-{
-	struct MinimaxParallelStruct* s = (struct MinimaxParallelStruct*) minimaxParllelStruct;
-	//printf("Depth %d\n", s->depth);
 
-
-	char board[8][8];
-	copyBoard(s->board, board);
-	struct Figure figures[32];
-	copyFigures(s->figures, figures);
-	int depth = s->depth;
-	bool maximizingPlayer = s->maximizingPlayer;
-
-
-	numOfExecutions++;
-	struct MinimaxReturn ret;
-	ret.value = 0;
-
-	if (depth == 0) //|| isTerminalNode(node))
-		return (void*)&ret; //TODO
-
-
-							//if (maximizingPlayer)
-							//{
-	ret.value = -999999;
-	struct Move moves[100];
-	int movesIndex = 0;
-	char newBoard[8][8];
-	struct Figure newFigures[32];
-	getAllAvailableMoves(board, moves, movesIndex, figures, !maximizingPlayer);
-
-	evaluateMoves(board, figures, moves, movesIndex);
-
-	for (int i = 0; i < movesIndex; i++) {
-
-		//copyBoard(board, newBoard);
-		//copyFigures(figures, newFigures);
-		//makeMove(newBoard, moves[i], newFigures);
-
-		makeMove(board, moves[i], figures);
-		struct MinimaxReturn result;
-		if (moves[i].fatalMove != true)
-		{
-			//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
-			result = minimax(board, figures, depth - 1, !maximizingPlayer);
-		}
-		else
-		{
-			result = minimax(board, figures, 0, !maximizingPlayer);
-			moves[i].points *= depth;
-
-		}
-
-		undoMove(board, moves[i], figures);
-
-		result.value = -result.value;
-		//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
-		if (result.value + moves[i].points >= ret.value)
-		{
-			//printf("SETTING BETTER MOVE\n");
-			ret.value = result.value + moves[i].points;
-			ret.bestMove = moves[i];
-		}
-	}
-
-	
-	//printf("Return %d\n", ret.value);
-	struct  MinimaxReturn* q = (struct  MinimaxReturn*)malloc(sizeof(struct  MinimaxReturn));
-
-	q->value = ret.value;
-	q->bestMove.figure.x = ret.bestMove.figure.x;
-	q->bestMove.figure.y = ret.bestMove.figure.y;
-	q->bestMove.figure.type = ret.bestMove.figure.type;
-
-	q->bestMove.newX = ret.bestMove.newX;
-	q->bestMove.newY = ret.bestMove.newY;
-	q->bestMove.oldX = ret.bestMove.oldX;
-	q->bestMove.oldY = ret.bestMove.oldY;
-	
-	//return (void*)&ret;
-	return q;
-	//return (void*)&(*&ret);
-}
 
 void randomAI(char board[8][8], struct Figure figures[32], bool isPlayer = false)
 {
@@ -1310,30 +1475,32 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 	numOfExecutions = 0;
 	clock_t begin = clock();
 
-	struct MinimaxParallelStruct* s = (struct MinimaxParallelStruct*)malloc(sizeof(struct MinimaxParallelStruct));
+	/*struct MinimaxParallelStruct* s = (struct MinimaxParallelStruct*)malloc(sizeof(struct MinimaxParallelStruct));
 	copyBoard(board, s->board);
 	s->depth = depth;
 	copyFigures(figures, s->figures);
 	s->maximizingPlayer = AI;
-	struct MinimaxReturn* mRet = (struct MinimaxReturn*)minimaxParallel((void*)s);
+	struct MinimaxReturn* mRet = (struct MinimaxReturn*)minimaxParallel((void*)s);*/
+
+
 	
 	
-	//struct MinimaxReturn mRet = minimax(board, figures, depth, AI);
+	struct MinimaxReturn mRet = minimax(board, figures, depth, AI);
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 	printf("Used %lf seconds.\n", elapsed_secs);
 	//printf("%d::%lf::%llu::%d::release\n", i, elapsed_secs, numOfExecutions, depth);
 
-	struct Move bestMove = mRet->bestMove;
-	//struct Move bestMove = mRet.bestMove;
+	//struct Move bestMove = mRet->bestMove;
+	struct Move bestMove = mRet.bestMove;
 
-	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet->value);
-	//printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
+	//printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet->value);
+	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
 
-	free(s);
-	free(mRet);
+	//free(s);
+	//free(mRet);
 
 	
 }
@@ -1397,7 +1564,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		printf("**** PLAYER MOVE ****\n");
 		//playerMove(board, figures);
 		//randomAI(board, figures, true);
-		miniMaxAI(board, figures, 3, false);
+		//miniMaxAI(board, figures, 3, false);
+		miniMaxAI(board, figures, START_DEPTH, false);
 		//Print the board to see the result
 		printBoard(board, figures);
 
@@ -1411,8 +1579,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
 		
-		
-		miniMaxAI(board, figures, 5, true);
+		miniMaxAI(board, figures, START_DEPTH, true);
 		
 		
 		//playerMove(board, figures, false);
