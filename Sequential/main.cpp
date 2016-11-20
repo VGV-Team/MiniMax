@@ -1197,8 +1197,9 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 	makeMove(board, m, figures, true);
 
 }
-
+double totalTime = 0;
 int i;
+int numofMoves = 0;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=true)
 {
 	numOfExecutions = 0;
@@ -1208,9 +1209,9 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 	printf("Used %lf seconds.\n", elapsed_secs);
 	//printf("%d::%lf::%llu::%d::release\n", i, elapsed_secs, numOfExecutions, depth);
-
+	totalTime += elapsed_secs;
 	struct Move bestMove = mRet.bestMove;
-
+	numofMoves++;
 	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
@@ -1276,8 +1277,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	{
 		printf("**** PLAYER MOVE ****\n");
 		//playerMove(board, figures);
-		//randomAI(board, figures, true);
-		miniMaxAI(board, figures, 3, false);
+		randomAI(board, figures, true);
+		//miniMaxAI(board, figures, 5, false);
 		//Print the board to see the result
 		printBoard(board, figures);
 
@@ -1326,15 +1327,17 @@ int main()
 
 		char board[8][8];
 		struct Figure figures[32];
+		for (int i = 0; i < 1; i++) {
+			//INIT
+			initChessboard(figures, board);
+			//printBoard(board, figures);
+			gameOver = false;
 
-		//INIT
-		initChessboard(figures, board);
-		//printBoard(board, figures);
-		gameOver = false;
-
-		//MAIN LOOP
-		gameLoop(board, figures);
-
+			//MAIN LOOP
+			gameLoop(board, figures);
+		}
+		
+		printf("TOTAL %lf MOVES %d", totalTime, numofMoves);
 
 	}
 
