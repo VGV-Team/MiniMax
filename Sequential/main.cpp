@@ -1276,8 +1276,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	{
 		printf("**** PLAYER MOVE ****\n");
 		//playerMove(board, figures);
-		//randomAI(board, figures, true);
-		miniMaxAI(board, figures, 3, false);
+		randomAI(board, figures, true);
+		//miniMaxAI(board, figures, 5, false);
 		//Print the board to see the result
 		printBoard(board, figures);
 
@@ -1295,10 +1295,10 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		//Print the board to see the result
 		printBoard(board, figures);
 
-		if (isUnderAttack(figures[16], figures, board))
-		{
-			printf("UNDER ATTACK\n");
-		}
+		//if (isUnderAttack(figures[16], figures, board))
+		//{
+		//	printf("UNDER ATTACK\n");
+		//}
 		
 
 		if (gameOver)
