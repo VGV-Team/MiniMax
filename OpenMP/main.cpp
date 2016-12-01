@@ -1104,9 +1104,10 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		{
 			omp_lock_t writelock;
 			omp_init_lock(&writelock);
-#pragma omp parallel for schedule(dynamic, 1) num_threads(NUM_THREADS)
+#pragma omp parallel for schedule(dynamic, 1) //num_threads(NUM_THREADS)
 			for (int i = 0; i < movesIndex; i++)
 			{
+				//printf("%d", omp_get_thread_num());
 				char newBoard[8][8];
 				struct Figure newFigures[32];
 				copyBoard(board, newBoard);
@@ -1254,10 +1255,10 @@ int i;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=true)
 {
 	numOfExecutions = 0;
-	clock_t begin = clock();
+	double begin = omp_get_wtime();
 	struct MinimaxReturn mRet = minimax(board, figures, depth, AI);
-	clock_t end = clock();
-	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	clock_t end = omp_get_wtime();
+	double elapsed_secs = double(omp_get_wtime() - begin);
 	printf("Used %lf seconds.\n", elapsed_secs);
 	//printf("%d::%lf::%llu::%d::release\n", i, elapsed_secs, numOfExecutions, depth);
 
