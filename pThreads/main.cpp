@@ -1,21 +1,19 @@
-
 #define HAVE_STRUCT_TIMESPEC
 
 #include <stdio.h>
 #include <time.h>  
 #include <stdlib.h>
 #include <pthread.h>
-#define NUM_THREADS 8
-#define PARALLELIZE_DEPTH 6
-#define START_DEPTH 6
-#define NUM_ITERATIONS 1
+#define NUM_THREADS 4
+#define PARALLELIZE_DEPTH 5
+#define START_DEPTH 5
 
-	// TODO: šah = edina poteza - later
-	// TODO: endless game by moving the same two figures
-	// TODO: endless game with two kings - later
-	// TODO: pat - no need yet
+// TODO: šah = edina poteza - later
+// TODO: endless game by moving the same two figures
+// TODO: endless game with two kings - later
+// TODO: pat - no need yet
 
-	bool gameOver = false;
+bool gameOver = false;
 bool firstLevel = true;
 pthread_t threads[NUM_THREADS];
 
@@ -1506,8 +1504,6 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 }
 
 int i;
-int numOfMoves = 0;
-double totalElapsedTime;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI = true)
 {
 	numOfExecutions = 0;
@@ -1526,9 +1522,8 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 	struct MinimaxReturn mRet = minimax(board, figures, depth, AI);
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-	totalElapsedTime += elapsed_secs;
 	printf("Used %lf seconds.\n", elapsed_secs);
-	printf("%d::%lf::%llu::%d::%d\n", i, elapsed_secs, numOfExecutions, depth, ++numOfMoves);
+	//printf("%d::%lf::%llu::%d::release\n", i, elapsed_secs, numOfExecutions, depth);
 
 	//struct Move bestMove = mRet->bestMove;
 	struct Move bestMove = mRet.bestMove;
@@ -1602,9 +1597,9 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	{
 		printf("**** PLAYER MOVE ****\n");
 		//playerMove(board, figures);
-		randomAI(board, figures, true);
+		//randomAI(board, figures, true);
 		//miniMaxAI(board, figures, 3, false);
-		//miniMaxAI(board, figures, START_DEPTH, false);
+		miniMaxAI(board, figures, START_DEPTH-1, false);
 		//Print the board to see the result
 		printBoard(board, figures);
 
@@ -1624,12 +1619,12 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		//playerMove(board, figures, false);
 		//Print the board to see the result
 		printBoard(board, figures);
-
+		/*
 		if (isUnderAttack(figures[16], figures, board))
 		{
 			printf("UNDER ATTACK\n");
 		}
-
+		*/
 
 		if (gameOver)
 		{
@@ -1662,19 +1657,13 @@ int main()
 		char board[8][8];
 		struct Figure figures[32];
 
-		totalElapsedTime = 0.0;
+		//INIT
+		initChessboard(figures, board);
+		//printBoard(board, figures);
+		gameOver = false;
 
-		for (int i = 0; i < NUM_ITERATIONS; i++) {
-			//INIT
-			initChessboard(figures, board);
-			//printBoard(board, figures);
-			gameOver = false;
-
-			//MAIN LOOP
-			gameLoop(board, figures);
-		}
-		printf("TOTAL: %lf MOVES: %d", totalElapsedTime, numOfMoves);
-		
+		//MAIN LOOP
+		gameLoop(board, figures);
 
 
 	}
@@ -1703,3 +1692,4 @@ int main()
 	scanf_s("%d", NULL);
 	return 0;
 }
+

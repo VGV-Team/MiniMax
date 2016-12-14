@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <time.h>  
 #include <stdlib.h>
-
+#include "omp.h"
+#define PARALLELIZE_DEPTH 5
+#define START_DEPTH 5
+#define NUM_THREADS 4
 
 
 // TODO: šah = edina poteza - later
@@ -1093,40 +1096,90 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		ret.value = -999999;
 		struct Move moves[100];
 		int movesIndex = 0;
-		char newBoard[8][8];
-		struct Figure newFigures[32];
-		getAllAvailableMoves(board, moves, movesIndex, figures, !maximizingPlayer);
 		
+		getAllAvailableMoves(board, moves, movesIndex, figures, !maximizingPlayer);
 		evaluateMoves(board, figures, moves, movesIndex);
-		for (int i = 0; i < movesIndex; i++) {
 
-			//copyBoard(board, newBoard);
-			//copyFigures(figures, newFigures);
-			//makeMove(newBoard, moves[i], newFigures);
-
-			makeMove(board, moves[i], figures);
-			struct MinimaxReturn result;
-			if (moves[i].fatalMove != true)
+		if (depth == PARALLELIZE_DEPTH)
+		{
+			omp_lock_t writelock;
+			omp_init_lock(&writelock);
+#pragma omp parallel for schedule(dynamic, 1) //num_threads(NUM_THREADS)
+			for (int i = 0; i < movesIndex; i++)
 			{
-				//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
-				result = minimax(board, figures, depth - 1, !maximizingPlayer);
+				//printf("%d", omp_get_thread_num());
+				char newBoard[8][8];
+				struct Figure newFigures[32];
+				copyBoard(board, newBoard);
+				copyFigures(figures, newFigures);
+
+
+				//copyBoard(board, newBoard);
+				//copyFigures(figures, newFigures);
+				//makeMove(newBoard, moves[i], newFigures);
+
+				makeMove(newBoard, moves[i], newFigures);
+				struct MinimaxReturn result;
+				if (moves[i].fatalMove != true)
+				{
+					//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+					result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+				}
+				else
+				{
+					result = minimax(newBoard, newFigures, 0, !maximizingPlayer);
+					moves[i].points *= depth;
+
+				}
+
+				undoMove(newBoard, moves[i], newFigures);
+
+				result.value = -result.value;
+				//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
+				omp_set_lock(&writelock);
+				if (result.value + moves[i].points >= ret.value)
+				{
+					//printf("SETTING BETTER MOVE\n");
+					ret.value = result.value + moves[i].points;
+					ret.bestMove = moves[i];
+				}
+				omp_unset_lock(&writelock);
 			}
-			else
+			omp_destroy_lock(&writelock);
+		}
+		else
+		{
+			for (int i = 0; i < movesIndex; i++)
 			{
-				result = minimax(board, figures, 0, !maximizingPlayer);
-				moves[i].points *= depth;
-				
-			}
 
-			undoMove(board, moves[i], figures);
+				//copyBoard(board, newBoard);
+				//copyFigures(figures, newFigures);
+				//makeMove(newBoard, moves[i], newFigures);
 
-			result.value = -result.value;
-			//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
-			if (result.value + moves[i].points >= ret.value)
-			{
-				//printf("SETTING BETTER MOVE\n");
-				ret.value = result.value + moves[i].points;
-				ret.bestMove = moves[i];
+				makeMove(board, moves[i], figures);
+				struct MinimaxReturn result;
+				if (moves[i].fatalMove != true)
+				{
+					//struct MinimaxReturn result = minimax(newBoard, newFigures, depth - 1, !maximizingPlayer);
+					result = minimax(board, figures, depth - 1, !maximizingPlayer);
+				}
+				else
+				{
+					result = minimax(board, figures, 0, !maximizingPlayer);
+					moves[i].points *= depth;
+
+				}
+
+				undoMove(board, moves[i], figures);
+
+				result.value = -result.value;
+				//printf("%d + %d vs. %d\n", result.value, moves[i].points, ret.value);
+				if (result.value + moves[i].points >= ret.value)
+				{
+					//printf("SETTING BETTER MOVE\n");
+					ret.value = result.value + moves[i].points;
+					ret.bestMove = moves[i];
+				}
 			}
 		}
 		return ret;
@@ -1197,21 +1250,20 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 	makeMove(board, m, figures, true);
 
 }
-double totalTime = 0;
+
 int i;
-int numofMoves = 0;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=true)
 {
 	numOfExecutions = 0;
-	clock_t begin = clock();
+	double begin = omp_get_wtime();
 	struct MinimaxReturn mRet = minimax(board, figures, depth, AI);
-	clock_t end = clock();
-	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	clock_t end = omp_get_wtime();
+	double elapsed_secs = double(omp_get_wtime() - begin);
 	printf("Used %lf seconds.\n", elapsed_secs);
 	//printf("%d::%lf::%llu::%d::release\n", i, elapsed_secs, numOfExecutions, depth);
-	totalTime += elapsed_secs;
+
 	struct Move bestMove = mRet.bestMove;
-	numofMoves++;
+
 	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
@@ -1277,8 +1329,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	{
 		printf("**** PLAYER MOVE ****\n");
 		//playerMove(board, figures);
-		randomAI(board, figures, true);
-		//miniMaxAI(board, figures, 5, false);
+		//randomAI(board, figures, true);
+		miniMaxAI(board, figures, START_DEPTH-1, false);
 		//Print the board to see the result
 		printBoard(board, figures);
 
@@ -1291,7 +1343,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		printf("****** AI MOVE ******\n");
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
-		miniMaxAI(board, figures, 5, true);
+		miniMaxAI(board, figures, START_DEPTH, true);
 		//playerMove(board, figures, false);
 		//Print the board to see the result
 		printBoard(board, figures);
@@ -1327,17 +1379,15 @@ int main()
 
 		char board[8][8];
 		struct Figure figures[32];
-		for (int i = 0; i < 1; i++) {
-			//INIT
-			initChessboard(figures, board);
-			//printBoard(board, figures);
-			gameOver = false;
 
-			//MAIN LOOP
-			gameLoop(board, figures);
-		}
-		
-		printf("TOTAL %lf MOVES %d", totalTime, numofMoves);
+		//INIT
+		initChessboard(figures, board);
+		//printBoard(board, figures);
+		gameOver = false;
+
+		//MAIN LOOP
+		gameLoop(board, figures);
+
 
 	}
 
