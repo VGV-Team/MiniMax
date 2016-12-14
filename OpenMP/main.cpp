@@ -2,9 +2,10 @@
 #include <time.h>  
 #include <stdlib.h>
 #include "omp.h"
-#define PARALLELIZE_DEPTH 5
-#define START_DEPTH 5
-#define NUM_THREADS 4
+#define PARALLELIZE_DEPTH 6
+#define START_DEPTH 6
+#define NUM_THREADS 16
+#define NUM_ITERATIONS 1
 
 
 // TODO: šah = edina poteza - later
@@ -1104,7 +1105,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		{
 			omp_lock_t writelock;
 			omp_init_lock(&writelock);
-#pragma omp parallel for schedule(dynamic, 1) //num_threads(NUM_THREADS)
+#pragma omp parallel for schedule(dynamic, 1) num_threads(NUM_THREADS)
 			for (int i = 0; i < movesIndex; i++)
 			{
 				//printf("%d", omp_get_thread_num());
@@ -1252,6 +1253,8 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 }
 
 int i;
+double totalTime = 0.0;
+int totalMoves = 0;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=true)
 {
 	numOfExecutions = 0;
@@ -1260,6 +1263,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 	clock_t end = omp_get_wtime();
 	double elapsed_secs = double(omp_get_wtime() - begin);
 	printf("Used %lf seconds.\n", elapsed_secs);
+	totalTime += elapsed_secs;
 	//printf("%d::%lf::%llu::%d::release\n", i, elapsed_secs, numOfExecutions, depth);
 
 	struct Move bestMove = mRet.bestMove;
@@ -1267,7 +1271,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
-
+	totalMoves++;
 	
 }
 
@@ -1325,12 +1329,14 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	srand(time(NULL));
 	printBoard(board, figures);
 
+	
+
 	while (true)
 	{
 		printf("**** PLAYER MOVE ****\n");
 		//playerMove(board, figures);
-		//randomAI(board, figures, true);
-		miniMaxAI(board, figures, START_DEPTH-1, false);
+		randomAI(board, figures, true);
+		//miniMaxAI(board, figures, START_DEPTH-1, false);
 		//Print the board to see the result
 		printBoard(board, figures);
 
@@ -1352,7 +1358,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		//{
 		//	printf("UNDER ATTACK\n");
 		//}
-		
+
 
 		if (gameOver)
 		{
@@ -1373,10 +1379,12 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 
 int main()
 {
-	//for (i = 0; i<5; i++)
-	{
-		//printf("NEW\n");
+	
+	totalTime = 0.0;
+	totalMoves = 0;
 
+	for (int i = 0; i < NUM_ITERATIONS; i++)
+	{
 		char board[8][8];
 		struct Figure figures[32];
 
@@ -1387,9 +1395,10 @@ int main()
 
 		//MAIN LOOP
 		gameLoop(board, figures);
-
-
 	}
+
+	printf("Total time: %lf Total moves: %d Num iterations: %d", totalTime, totalMoves, NUM_ITERATIONS);
+	
 
 	#pragma region Old testing
 		//TESTING getAvailableMoves function
