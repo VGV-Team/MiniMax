@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pThreads", "pThreads\pThrea
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenMP", "OpenMP\OpenMP.vcxproj", "{3D7B39E7-37D4-4CEC-B009-D3042FF6A7FD}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenCL", "OpenCL\OpenCL.vcxproj", "{34151DCD-4C2C-42C5-8D63-B8A1039B0046}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,14 @@ Global
 		{3D7B39E7-37D4-4CEC-B009-D3042FF6A7FD}.Release|x64.Build.0 = Release|x64
 		{3D7B39E7-37D4-4CEC-B009-D3042FF6A7FD}.Release|x86.ActiveCfg = Release|Win32
 		{3D7B39E7-37D4-4CEC-B009-D3042FF6A7FD}.Release|x86.Build.0 = Release|Win32
+		{34151DCD-4C2C-42C5-8D63-B8A1039B0046}.Debug|x64.ActiveCfg = Debug|x64
+		{34151DCD-4C2C-42C5-8D63-B8A1039B0046}.Debug|x64.Build.0 = Debug|x64
+		{34151DCD-4C2C-42C5-8D63-B8A1039B0046}.Debug|x86.ActiveCfg = Debug|Win32
+		{34151DCD-4C2C-42C5-8D63-B8A1039B0046}.Debug|x86.Build.0 = Debug|Win32
+		{34151DCD-4C2C-42C5-8D63-B8A1039B0046}.Release|x64.ActiveCfg = Release|x64
+		{34151DCD-4C2C-42C5-8D63-B8A1039B0046}.Release|x64.Build.0 = Release|x64
+		{34151DCD-4C2C-42C5-8D63-B8A1039B0046}.Release|x86.ActiveCfg = Release|Win32
+		{34151DCD-4C2C-42C5-8D63-B8A1039B0046}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
