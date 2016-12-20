@@ -65,6 +65,8 @@ struct Element
 	int cost;
 	Move firstMove;
 	Element* next;
+
+	//int ind;
 };
 
 struct Element *root = NULL;
@@ -1136,8 +1138,8 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 
 	numOfExecutions++;
 	struct MinimaxReturn ret;
-	ret.value = 0;
-
+	ret.value = -99999;
+	
 	// first init of moves
 	{
 		struct Move moves[100];
@@ -1145,27 +1147,34 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		getAllAvailableMoves(board, moves, movesIndex, figures, !maximizingPlayer);
 		evaluateMoves(board, figures, moves, movesIndex);
 		for (int i = 0; i < movesIndex; i++) {
+
+			//char newBoard[8][8];
+			//struct Figure newFigures[32];
+
+			char(*newBoard)[8] = new char[8][8];
+			struct Figure *newFigures = (struct Figure*)malloc(sizeof(Figure)*32);
+
+			copyBoard(board, newBoard);
+			copyFigures(figures, newFigures);
+			makeMove(newBoard, moves[i], newFigures);
+			
 			if (moves[i].fatalMove != true)
 			{
-				makeMove(board, moves[i], figures);
-				char newBoard[8][8];
-				struct Figure newFigures[32];
-				copyBoard(board, newBoard);
-				copyFigures(figures, newFigures);
 				PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
-				undoMove(board, moves[i], figures);
 			}
 			else
 			{
 				moves[i].points *= depth;
-				makeMove(board, moves[i], figures);
-				char newBoard[8][8];
-				struct Figure newFigures[32];
-				copyBoard(board, newBoard);
-				copyFigures(figures, newFigures);
 				PushFront(newBoard, newFigures, 0, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
-				undoMove(board, moves[i], figures);
 			}
+			//root->ind = i;
+			//if (i > 0)
+			//{
+			//	printf("%d %d", root->ind, root->next->ind);
+			//	printBoard(root->next->board, root->next->figures);
+			//}
+			//printBoard(newBoard, newFigures);
+			
 		}
 	}
 
@@ -1178,12 +1187,21 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		Element* el = PopFront();
 		if (el->depth == 0)
 		{
+			
 			if(el->cost>=ret.value)
 			{
 				ret.value = el->cost;
 				ret.bestMove = el->firstMove;
 			}
-
+			/*
+			if(el->cost > 500)
+			{
+				printf("%d", el->cost);
+				printBoard(el->board, el->figures);
+			}
+			*/
+			free(el->board);
+			free(el->figures);
 			free(el);
 			continue;
 		}
@@ -1194,12 +1212,15 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		evaluateMoves(el->board, el->figures, moves, movesIndex);
 		for (int i = 0; i < movesIndex; i++) {
 			
-			char newBoard[8][8]; // = new char[8][8];
-			struct Figure newFigures[32]; // = new Figure[32];
+			char(*newBoard)[8] = new char[8][8];
+			struct Figure *newFigures = (struct Figure*)malloc(sizeof(Figure) * 32);
+
+			//char newBoard[8][8]; // = new char[8][8];
+			//struct Figure newFigures[32]; // = new Figure[32];
 			copyBoard(el->board, newBoard);
 			copyFigures(el->figures, newFigures);
 			makeMove(newBoard, moves[i], newFigures);
-			printBoard(newBoard, newFigures);
+			//printBoard(newBoard, newFigures);
 			if (moves[i].fatalMove != true)
 			{
 				PushFront(newBoard, newFigures, el->depth-1, !el->AI, -(el->cost+moves[i].points), el->firstMove);
@@ -1207,11 +1228,13 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			}
 			else
 			{
-				moves[i].points *= el->cost;
+				moves[i].points *= el->depth;
 				PushFront(newBoard, newFigures, 0, !el->AI, -(el->cost + moves[i].points), el->firstMove);
 			}
 		}
 
+		free(el->board);
+		free(el->figures);
 		free(el);
 	}
 
@@ -1332,11 +1355,11 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	while (true)
 	{
 		printf("**** PLAYER MOVE ****\n");
-		//playerMove(board, figures);
+		playerMove(board, figures);
 		//randomAI(board, figures, true);
-		//miniMaxAI(board, figures, 5, false);
+		//miniMaxAI(board, figures, 3, false);
 		//Print the board to see the result
-		//printBoard(board, figures);
+		printBoard(board, figures);
 
 		if (gameOver)
 		{
