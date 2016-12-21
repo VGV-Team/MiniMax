@@ -10,6 +10,8 @@
 // TODO: pat - no need yet
 
 void copyHistory(int history[], int newHistory[]);
+void copyBoard(char board[8][8], char newBoard[8][8]);
+void copyFigures(struct Figure figures[32], struct Figure newFigures[32]);
 
 bool gameOver = false;
 
@@ -60,8 +62,8 @@ struct MinimaxReturn
 
 struct Element
 {
-	char (*board)[8];
-	Figure* figures;
+	char board[8][8];
+	Figure figures[32];
 	int depth;
 	bool AI;
 	int cost;
@@ -94,11 +96,11 @@ void PushFinal(int history[], Move firstMove)
 	finalElementRoot = q;
 }
 
-void PushFront(char board[8][8], Figure figure[32], int depth, bool AI, int cost, Move firstMove, int costHistory[])
+void PushFront(char board[8][8], Figure figures[32], int depth, bool AI, int cost, Move firstMove, int costHistory[])
 {
 	Element* q = (Element*)malloc(sizeof(Element));
-	q->board = board;
-	q->figures = figure;
+	copyBoard(board, q->board);
+	copyFigures(figures, q->figures);
 	q->depth = depth;
 	q->AI = AI;
 	q->next = NULL;
@@ -1188,8 +1190,8 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			//char newBoard[8][8];
 			//struct Figure newFigures[32];
 
-			char(*newBoard)[8] = new char[8][8];
-			struct Figure *newFigures = (struct Figure*)malloc(sizeof(Figure)*32);
+			char newBoard[8][8];
+			struct Figure newFigures[32];
 
 			copyBoard(board, newBoard);
 			copyFigures(figures, newFigures);
@@ -1325,8 +1327,6 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			
 
 
-			free(el->board);
-			free(el->figures);
 			free(el);
 			continue;
 		}
@@ -1337,8 +1337,8 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		evaluateMoves(el->board, el->figures, moves, movesIndex);
 		for (int i = 0; i < movesIndex; i++) {
 			
-			char(*newBoard)[8] = new char[8][8];
-			struct Figure *newFigures = (struct Figure*)malloc(sizeof(Figure) * 32);
+			char newBoard[8][8];
+			struct Figure newFigures[32];
 
 			//char newBoard[8][8]; // = new char[8][8];
 			//struct Figure newFigures[32]; // = new Figure[32];
@@ -1376,8 +1376,6 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			}
 		}
 
-		free(el->board);
-		free(el->figures);
 		free(el);
 	}
 
@@ -1540,7 +1538,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		printf("****** AI MOVE ******\n");
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
-		miniMaxAI(board, figures, 4, true);
+		miniMaxAI(board, figures, 5, true);
 		//playerMove(board, figures, false);
 		//Print the board to see the result
 		printBoard(board, figures);

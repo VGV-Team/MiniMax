@@ -1276,8 +1276,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	while (true)
 	{
 		printf("**** PLAYER MOVE ****\n");
-		//playerMove(board, figures);
-		randomAI(board, figures, true);
+		playerMove(board, figures);
+		//randomAI(board, figures, true);
 		//miniMaxAI(board, figures, 5, false);
 		//Print the board to see the result
 		printBoard(board, figures);
