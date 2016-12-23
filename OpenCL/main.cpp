@@ -2,7 +2,7 @@
 #include <time.h>  
 #include <stdlib.h>
 
-
+#define START_DEPTH 4
 
 // TODO: šah = edina poteza - later
 // TODO: endless game by moving the same two figures
@@ -69,13 +69,13 @@ struct Element
 	int cost;
 	Move firstMove;
 	Element* next;
-	int costHistory[5];
+	int costHistory[(START_DEPTH+1)];
 	//int ind;
 };
 
 struct FinalElement
 {
-	int costHistory[5];
+	int costHistory[(START_DEPTH + 1)];
 	Move firstMove;
 	FinalElement* next;
 };
@@ -107,9 +107,10 @@ void PushFront(char board[8][8], Figure figures[32], int depth, bool AI, int cos
 	q->cost = cost;
 	q->firstMove = firstMove;
 
-	for (int i = 0; i < 5; i++) {
+	/*for (int i = 0; i < 5; i++) {
 		q->costHistory[i] = costHistory[i];
-	}
+	}*/
+	copyHistory(costHistory, q->costHistory);
 
 	//if (root == NULL) root = q;
 	//else q->next = *root;
@@ -1163,7 +1164,7 @@ unsigned long long int numOfExecutions;
 
 void copyHistory(int history[], int newHistory[])
 {
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < (START_DEPTH + 1); i++)
 	{
 		newHistory[i] = history[i];
 	}
@@ -1177,7 +1178,9 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	struct MinimaxReturn ret;
 	ret.value = -99999;
 
-	int finalCosts[5] = {0,0,0,0,0};
+	int finalCosts[(START_DEPTH + 1)];
+	for (int i = 0; i < (START_DEPTH + 1); i++)
+		finalCosts[i] = 0;
 	
 	// first init of moves
 	{
@@ -1199,17 +1202,20 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			
 			int tmp = cost;
 			
-			int history[5] = {-1,-1,-1,-1, moves[i].points};
+			int history[(START_DEPTH + 1)]; // = { -2,-2,-2,-2,-2, moves[i].points };
+			for (int j = 0; j < (START_DEPTH + 1); j++)
+				history[j] = 0;
+			history[(START_DEPTH + 1) - 1] = moves[i].points;
 			//printf("%d - %d\n", moves[i].points, history[4]);
 
-			if (moves[i].fatalMove != true)
+			//if (moves[i].fatalMove != true)
 			{
-				if (!maximizingPlayer) history[depth] += moves[i].points;
-				else history[depth] -= moves[i].points;
+				//if (!maximizingPlayer) history[depth] += moves[i].points;
+				//else history[depth] -= moves[i].points;
 				//PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
-
+				history[depth] = moves[i].points;
 				PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, 0, moves[i], history);
-			}
+			}/*
 			else
 			{
 				moves[i].points *= depth;
@@ -1217,7 +1223,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				else history[depth] -= moves[i].points;
 				//PushFront(newBoard, newFigures, 0, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
 				PushFront(newBoard, newFigures, 0, !maximizingPlayer, 0, moves[i], history);
-			}
+			}*/
 			//root->ind = i;
 			//if (i > 0)
 			//{
@@ -1229,15 +1235,17 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		}
 	}
 
-	int bestLocalCost = -999;
+	int bestLocalCost = -99999;
 	Move bestLocalMove;
 	
 	int moveCosts[60];
 	Move bestMoves[60];
 	int moveCostIndex = 0;
 
-	int bestCosts[5] = { -999,-999,-999,-999,-999 };
-	Move bestFinalMoves[5];
+	int bestCosts[(START_DEPTH + 1)];// = { -999999,-9999999,-9999999,-999999,-99999999 };
+	Move bestFinalMoves[(START_DEPTH + 1)];
+	for (int i = 0; i < (START_DEPTH + 1); i++)
+		bestCosts[i] = -999999;
 
 	int oldDepth = -1;
 
@@ -1247,6 +1255,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		Element* el = PopFront();
 		if (el->depth == 0)
 		{
+
 			oldDepth = 0;
 			//PushFinal(el->costHistory, el->firstMove);
 
@@ -1279,19 +1288,29 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				// Pogledamo vse do zdaj shranjene tocke in izberemo najboljso potezo
 				for (int i = 0; i < moveCostIndex; i++)
 				{
-					if (bestLocalCost < moveCosts[i])
+					if (/*START_DEPTH%2 == 1 &&*/ bestLocalCost < -moveCosts[i])
 					{
+						//printf("%d < %d ", bestLocalCost, moveCosts[i]);
 						bestLocalCost = moveCosts[i];
 						bestLocalMove = bestMoves[i];
+						
 					}
+					//else if(bestLocalCost > moveCosts[i])
+					//{
+					//	bestLocalCost = moveCosts[i];
+					//	bestLocalMove = bestMoves[i];
+					//}
+					
 				}
-				
+				//printf(":: %d\n", bestLocalCost);
+
 				// Resetiramo stevec
 				moveCostIndex = 0;
 
 				// Pogledamo ce je trenutni lokalni premik (globina 0) boljsi od tistega ki ga ze imamo (tabela bestCosts)
 				if (bestCosts[0] <= bestLocalCost) 
 				{
+					//printf("%d <= %d\n", bestCosts[0], bestLocalCost);
 					bestCosts[0] = bestLocalCost;
 					bestFinalMoves[0] = bestLocalMove;
 				}
@@ -1299,33 +1318,27 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				// Potem pa vse propagiramo nazaj
 				int tmpDepth = 1;
 				int topDepth;
-				if (el->next == NULL) topDepth = 5;
-				else topDepth = el->next->depth;
+				if (el->next == NULL) topDepth = START_DEPTH+1;
+				else topDepth = el->next->depth+1;
 
-				while (topDepth > tmpDepth)
-				{
-					
-					/*if ( (depth % 2 == 1 && tmpDepth % 2 == 1) || (depth % 2 == 0 && tmpDepth % 2 == 0)) 
-						if (bestCosts[tmpDepth-1] + el->costHistory[tmpDepth] >= bestCosts[tmpDepth]) 
-							bestCosts[tmpDepth] = bestCosts[tmpDepth - 1] + el->costHistory[tmpDepth];
-					else 
-						if (bestCosts[tmpDepth - 1] - el->costHistory[tmpDepth] >= bestCosts[tmpDepth])
-							bestCosts[tmpDepth] = bestCosts[tmpDepth - 1] - el->costHistory[tmpDepth];*/
-					
-					if (-bestCosts[tmpDepth - 1] + el->costHistory[tmpDepth] >= bestCosts[tmpDepth])
-					{
-						bestCosts[tmpDepth] = -bestCosts[tmpDepth - 1] + el->costHistory[tmpDepth];
-						bestFinalMoves[tmpDepth] = bestFinalMoves[tmpDepth - 1];
-					}
-
-					tmpDepth++;
-				}
 
 				bestLocalCost = -99999;
 			}
 
 			
-
+			if(root==NULL)
+			{
+				printf("qweqweqweqwe");
+				for (int i = 0; i < START_DEPTH; i++)
+				{
+					makeMove(board, bestFinalMoves[i], figures);
+					printBoard(board, figures);
+				}
+				for (int i = 0; i < START_DEPTH; i++)
+				{
+					undoMove(board, bestFinalMoves[START_DEPTH-1-i], figures);
+				}
+			}
 
 			free(el);
 			continue;
@@ -1350,7 +1363,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			int tmp = el->cost;
 
 
-			if (moves[i].fatalMove != true)
+			//if (moves[i].fatalMove != true)
 			{
 				//if (el->AI) el->costHistory[el->depth] += moves[i].points;
 				//else el->costHistory[el->depth] -= moves[i].points;
@@ -1360,8 +1373,18 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				//PushFront(newBoard, newFigures, el->depth-1, !(el->AI), -(el->cost+moves[i].points), el->firstMove);
 				//undoMove(board, moves[i], figures);
 				//PushFront(newBoard, newFigures, el->depth - 1, !(el->AI), tmp, el->firstMove);
+				
+				/*
+				if(moves[i].points == 200)
+				{
+					printf("qwe %d ;; ", moves[i].points);
+					printBoard(el->board, el->figures);
+					printBoard(newBoard, newFigures);
+				}
+				*/
+				
 				PushFront(newBoard, newFigures, el->depth - 1, !(el->AI), cost, el->firstMove, el->costHistory);
-			}
+			}/*
 			else
 			{
 				moves[i].points *= el->depth;
@@ -1373,7 +1396,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				//PushFront(newBoard, newFigures, 0, !el->AI, -(el->cost + moves[i].points), el->firstMove);
 				//PushFront(newBoard, newFigures, 0, !el->AI, tmp, el->firstMove);
 				PushFront(newBoard, newFigures, el->depth - 1, !(el->AI), cost, el->firstMove, el->costHistory);
-			}
+			}*/
 		}
 
 		free(el);
@@ -1404,14 +1427,17 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		// while queue not empty
 		// compare
 		// moves to queue
-	printf("%d\n", Count());
+	//printf("%d\n", Count());
 
 	//ret.value = costs[depth-1];
 	//ret.bestMove = bestMoves[depth - 1];
 
-	ret.value = bestCosts[4];
-	ret.bestMove = bestFinalMoves[4];
-
+	ret.value = bestCosts[START_DEPTH];
+	ret.bestMove = bestFinalMoves[START_DEPTH];
+	for (int i = 0; i < (START_DEPTH+1); i++)
+	{
+		printf("%d\n", bestCosts[i]);
+	}
 	return ret;
 }
 
@@ -1460,7 +1486,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 	struct Move bestMove = mRet.bestMove;
 	numofMoves++;
 	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
-
+	
 	makeMove(board, bestMove, figures, true);
 
 	
@@ -1538,7 +1564,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		printf("****** AI MOVE ******\n");
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
-		miniMaxAI(board, figures, 5, true);
+		miniMaxAI(board, figures, START_DEPTH, true);
 		//playerMove(board, figures, false);
 		//Print the board to see the result
 		printBoard(board, figures);
