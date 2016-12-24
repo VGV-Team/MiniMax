@@ -2,7 +2,9 @@
 #include <time.h>  
 #include <stdlib.h>
 
-#define START_DEPTH 4
+//#define START_DEPTH 4
+
+#define DEPTH_TO_CALC 3
 
 // TODO: šah = edina poteza - later
 // TODO: endless game by moving the same two figures
@@ -69,13 +71,15 @@ struct Element
 	int cost;
 	Move firstMove;
 	Element* next;
-	int costHistory[(START_DEPTH+1)];
+	//int costHistory[(START_DEPTH+1)];
+	int costHistory[DEPTH_TO_CALC];
 	//int ind;
 };
 
 struct FinalElement
 {
-	int costHistory[(START_DEPTH + 1)];
+	//int costHistory[(START_DEPTH + 1)];
+	int costHistory[(DEPTH_TO_CALC)];
 	Move firstMove;
 	FinalElement* next;
 };
@@ -108,7 +112,7 @@ void PushFront(char board[8][8], Figure figures[32], int depth, bool AI, int cos
 	q->firstMove = firstMove;
 
 	/*for (int i = 0; i < 5; i++) {
-		q->costHistory[i] = costHistory[i];
+	q->costHistory[i] = costHistory[i];
 	}*/
 	copyHistory(costHistory, q->costHistory);
 
@@ -121,7 +125,7 @@ void PushFront(char board[8][8], Figure figures[32], int depth, bool AI, int cos
 Element* PopFront()
 {
 	Element* tmp = root;
-	if(root!=NULL)
+	if (root != NULL)
 		root = root->next;
 	return tmp;
 }
@@ -176,12 +180,12 @@ void addToMoves(struct Move moves[], int& movesIndex, int newX, int newY, char b
 	// if peasant reached the end of the board he is promoted to a queen
 	if (m.figure.type == Figure_Peasant)
 	{
-		if(m.figure.playerFigure && m.newX == 0 || !m.figure.playerFigure && m.newX == 7)
+		if (m.figure.playerFigure && m.newX == 0 || !m.figure.playerFigure && m.newX == 7)
 		{
 			m.figure.type = Figure_Queen;
 		}
 	}
-	
+
 	if (board[newX][newY] == Figure_Empty) m.newLocationFigure = -1;
 	else m.newLocationFigure = board[newX][newY];
 	moves[movesIndex] = m;
@@ -799,11 +803,11 @@ void getAvailableMoves(Figure f, char board[8][8], struct Move moves[], int& mov
 		// castling
 
 		// bottom left
-		if(
-			f.firstMove && 
-			f.playerFigure && 
-			board[7][0] != Figure_Empty && 
-			figures[board[7][0]].playerFigure && 
+		if (
+			f.firstMove &&
+			f.playerFigure &&
+			board[7][0] != Figure_Empty &&
+			figures[board[7][0]].playerFigure &&
 			figures[board[7][0]].type == Figure_Rook &&
 			figures[board[7][0]].firstMove &&
 
@@ -998,7 +1002,7 @@ struct Move evaluateMoves(char board[8][8], struct Figure figures[32], struct Mo
 				printf("Weird error in evaluateMoves() switch!");
 			}
 		}
-		if(figures[board[tmp.oldX][tmp.oldY]].type == Figure_Peasant)
+		if (figures[board[tmp.oldX][tmp.oldY]].type == Figure_Peasant)
 		{
 			if (tmp.figure.playerFigure && tmp.newX == 0 || !tmp.figure.playerFigure && tmp.newX == 7) points += 175;
 		}
@@ -1038,7 +1042,7 @@ void printBoard(char board[8][8], struct Figure figures[32])
 
 void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool realMove = false)
 {
-	
+
 	if (board[m.newX][m.newY] == Figure_Empty)
 	{
 		//OK, we can move freely
@@ -1048,7 +1052,7 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool r
 	{
 		//We will kill an enemy figure by moving here
 		figures[board[m.newX][m.newY]].alive = false;
-		if(realMove)
+		if (realMove)
 		{
 			printf("Killed figure type: %c\n", figures[board[m.newX][m.newY]].type - 32);
 			if (figures[board[m.newX][m.newY]].type == Figure_King)
@@ -1057,18 +1061,18 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool r
 				printf("King killed. Game finished.\n");
 			}
 		}
-		
+
 	}
 	//printf("Moving %c from x:%d y:%d to x:%d y:%d\n", m.figure.type, m.figure.x, m.figure.y, m.newX, m.newY);
 	//printf("%d %d\n", figures[1].x, figures[1].y);
 	/*m.figure.x = m.newX;
 	m.figure.y = m.newY;*/
 
-	
+
 	// castling
-	if(m.figure.type == Figure_King && (m.oldY - m.newY == 2 || m.oldY - m.newY == -2))
+	if (m.figure.type == Figure_King && (m.oldY - m.newY == 2 || m.oldY - m.newY == -2))
 	{
-		if(m.oldY - m.newY > 0) // move left
+		if (m.oldY - m.newY > 0) // move left
 		{
 			board[m.newX][3] = board[m.figure.x][0];
 			figures[board[m.figure.x][0]].x = m.newX;
@@ -1085,7 +1089,7 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool r
 			board[m.figure.x][7] = Figure_Empty;
 		}
 	}
-	
+
 
 	// changes peasant to queen if he reached end of the board
 	figures[board[m.figure.x][m.figure.y]].type = m.figure.type;
@@ -1096,13 +1100,13 @@ void makeMove(char board[8][8], struct Move m, struct Figure figures[32], bool r
 	figures[board[m.figure.x][m.figure.y]].x = m.newX;
 	figures[board[m.figure.x][m.figure.y]].y = m.newY;
 	figures[board[m.figure.x][m.figure.y]].firstMove = false; //We have to set this to false in case we moved a peasant for the first time.
-																	 //printf("%d %d\n", figures[1].x, figures[1].y);
+															  //printf("%d %d\n", figures[1].x, figures[1].y);
 
-	// update board by clearing figure that moved
+															  // update board by clearing figure that moved
 	board[m.figure.x][m.figure.y] = Figure_Empty;
 
 	//refreshBoard(figures, board);
-	
+
 
 }
 
@@ -1145,7 +1149,7 @@ void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
 
 	figures[board[m.newX][m.newY]].type = m.oldFigureType;
 	board[m.oldX][m.oldY] = board[m.newX][m.newY];
-	if(m.newLocationFigure >= 0)
+	if (m.newLocationFigure >= 0)
 	{
 		board[m.newX][m.newY] = m.newLocationFigure;
 		figures[m.newLocationFigure].alive = true;
@@ -1164,7 +1168,13 @@ unsigned long long int numOfExecutions;
 
 void copyHistory(int history[], int newHistory[])
 {
+	/*
 	for (int i = 0; i < (START_DEPTH + 1); i++)
+	{
+	newHistory[i] = history[i];
+	}
+	*/
+	for (int i = 0; i < (DEPTH_TO_CALC); i++)
 	{
 		newHistory[i] = history[i];
 	}
@@ -1178,10 +1188,6 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	struct MinimaxReturn ret;
 	ret.value = -99999;
 
-	int finalCosts[(START_DEPTH + 1)];
-	for (int i = 0; i < (START_DEPTH + 1); i++)
-		finalCosts[i] = 0;
-	
 	// first init of moves
 	{
 		struct Move moves[100];
@@ -1193,19 +1199,33 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			//char newBoard[8][8];
 			//struct Figure newFigures[32];
 
+			if (moves[i].fatalMove == true)
+			{
+				ret.value = 555;
+				ret.bestMove = moves[i];
+				int s = Count();
+				for (int j = 0; j < s; j++) free(PopFront());
+				return ret;
+			}
+
 			char newBoard[8][8];
 			struct Figure newFigures[32];
 
 			copyBoard(board, newBoard);
 			copyFigures(figures, newFigures);
 			makeMove(newBoard, moves[i], newFigures);
-			
-			int tmp = cost;
-			
+
+			/*
 			int history[(START_DEPTH + 1)]; // = { -2,-2,-2,-2,-2, moves[i].points };
 			for (int j = 0; j < (START_DEPTH + 1); j++)
-				history[j] = 0;
+			history[j] = 0;
 			history[(START_DEPTH + 1) - 1] = moves[i].points;
+			*/
+			int history[DEPTH_TO_CALC]; // = { -2,-2,-2,-2,-2, moves[i].points };
+			for (int j = 0; j < DEPTH_TO_CALC; j++)
+				history[j] = 0;
+			history[DEPTH_TO_CALC - 1] = moves[i].points;
+
 			//printf("%d - %d\n", moves[i].points, history[4]);
 
 			//if (moves[i].fatalMove != true)
@@ -1213,41 +1233,47 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				//if (!maximizingPlayer) history[depth] += moves[i].points;
 				//else history[depth] -= moves[i].points;
 				//PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
-				history[depth] = moves[i].points;
+
 				PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, 0, moves[i], history);
 			}/*
-			else
-			{
-				moves[i].points *= depth;
-				if (!maximizingPlayer) history[depth] += moves[i].points;
-				else history[depth] -= moves[i].points;
-				//PushFront(newBoard, newFigures, 0, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
-				PushFront(newBoard, newFigures, 0, !maximizingPlayer, 0, moves[i], history);
-			}*/
-			//root->ind = i;
-			//if (i > 0)
-			//{
-			//	printf("%d %d", root->ind, root->next->ind);
-			//	printBoard(root->next->board, root->next->figures);
-			//}
-			//printBoard(newBoard, newFigures);
-			
+			 else
+			 {
+			 moves[i].points *= depth;
+			 if (!maximizingPlayer) history[depth] += moves[i].points;
+			 else history[depth] -= moves[i].points;
+			 //PushFront(newBoard, newFigures, 0, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
+			 PushFront(newBoard, newFigures, 0, !maximizingPlayer, 0, moves[i], history);
+			 }*/
+			 //root->ind = i;
+			 //if (i > 0)
+			 //{
+			 //	printf("%d %d", root->ind, root->next->ind);
+			 //	printBoard(root->next->board, root->next->figures);
+			 //}
+			 //printBoard(newBoard, newFigures);
+
 		}
 	}
 
-	int bestLocalCost = -99999;
-	Move bestLocalMove;
-	
-	int moveCosts[60];
-	Move bestMoves[60];
-	int moveCostIndex = 0;
 
+
+	//int bestLocalCost = -99999;
+	//Move bestLocalMove;
+
+	//int moveCosts[60];
+	//Move bestMoves[60];
+	//int moveCostIndex = 0;
+	/*
 	int bestCosts[(START_DEPTH + 1)];// = { -999999,-9999999,-9999999,-999999,-99999999 };
 	Move bestFinalMoves[(START_DEPTH + 1)];
 	for (int i = 0; i < (START_DEPTH + 1); i++)
-		bestCosts[i] = -999999;
+	bestCosts[i] = -999999;
+	*/
 
-	int oldDepth = -1;
+	int bestCosts[DEPTH_TO_CALC];// = { -999999,-9999999,-9999999,-999999,-99999999 };
+	Move bestFinalMoves[DEPTH_TO_CALC];
+	for (int i = 0; i < DEPTH_TO_CALC; i++)
+		bestCosts[i] = -999999;
 
 	while (Count() > 0)
 	{
@@ -1255,101 +1281,66 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		Element* el = PopFront();
 		if (el->depth == 0)
 		{
+			//int bestLeafCost = -9999999;
 
-			oldDepth = 0;
-			//PushFinal(el->costHistory, el->firstMove);
-
-			moveCosts[moveCostIndex] = el->costHistory[1];
-			bestMoves[moveCostIndex] = el->firstMove;
-			moveCostIndex++;
-
-			//if (el->costHistory[3] > 0) printf("qwe");
-
-			//printf("%d\n", el->cost);
-			/*if (el->cost < 0) printf("%d\n", el->cost);
-			if(el->cost >= ret.value)
+			if (el->costHistory[el->depth] >= bestCosts[el->depth])
 			{
-				//costs[el->depth] = el->cost;
-				//bestMoves[el->depth] = el->firstMove;
-				ret.value = el->cost;
-				ret.bestMove = el->firstMove;
-			}*/
-			/*
-			if(el->cost > 500)
-			{
-				printf("%d", el->cost);
-				printBoard(el->board, el->figures);
+
+				bestCosts[el->depth] = el->costHistory[el->depth];
+				bestFinalMoves[el->depth] = el->firstMove;
+				
 			}
-			*/
 
-			// Ce je naslednji element v stacku NULL ali pa je razlicne glibine gremo posodabljat tabelo
 			if (el->next == NULL || el->next->depth > el->depth)
 			{
-				// Pogledamo vse do zdaj shranjene tocke in izberemo najboljso potezo
-				for (int i = 0; i < moveCostIndex; i++)
-				{
-					if (/*START_DEPTH%2 == 1 &&*/ bestLocalCost < -moveCosts[i])
-					{
-						//printf("%d < %d ", bestLocalCost, moveCosts[i]);
-						bestLocalCost = moveCosts[i];
-						bestLocalMove = bestMoves[i];
-						
-					}
-					//else if(bestLocalCost > moveCosts[i])
-					//{
-					//	bestLocalCost = moveCosts[i];
-					//	bestLocalMove = bestMoves[i];
-					//}
-					
-				}
-				//printf(":: %d\n", bestLocalCost);
-
-				// Resetiramo stevec
-				moveCostIndex = 0;
-
-				// Pogledamo ce je trenutni lokalni premik (globina 0) boljsi od tistega ki ga ze imamo (tabela bestCosts)
-				if (bestCosts[0] <= bestLocalCost) 
-				{
-					//printf("%d <= %d\n", bestCosts[0], bestLocalCost);
-					bestCosts[0] = bestLocalCost;
-					bestFinalMoves[0] = bestLocalMove;
-				}
-
-				// Potem pa vse propagiramo nazaj
 				int tmpDepth = 1;
 				int topDepth;
-				if (el->next == NULL) topDepth = START_DEPTH+1;
-				else topDepth = el->next->depth+1;
+				if (el->next == NULL) topDepth = DEPTH_TO_CALC;
+				else topDepth = el->next->depth + 1;
 
+				while (topDepth > tmpDepth)
+				{
+					if (-bestCosts[tmpDepth - 1] + el->costHistory[tmpDepth] > bestCosts[tmpDepth])
+					{
+						bestCosts[tmpDepth] = -bestCosts[tmpDepth - 1] + el->costHistory[tmpDepth];
+						bestFinalMoves[tmpDepth] = bestFinalMoves[tmpDepth - 1];
+					}
+					bestCosts[tmpDepth - 1] = -99999;
+					tmpDepth++;
+				}
+				/*
+				// curr lvl + prev orig > best prev
+				if (bestCosts[el->depth + 1] <= bestEl.costHistory[bestEl.depth] + bestEl.costHistory[bestEl.depth + 1])
+				{
+					bestCosts[el->depth + 1] = bestEl.costHistory[bestEl.depth] + bestEl.costHistory[bestEl.depth + 1];
+				}
+				*/
 
-				bestLocalCost = -99999;
 			}
 
-			
-			if(root==NULL)
-			{
-				printf("qweqweqweqwe");
-				for (int i = 0; i < START_DEPTH; i++)
-				{
-					makeMove(board, bestFinalMoves[i], figures);
-					printBoard(board, figures);
-				}
-				for (int i = 0; i < START_DEPTH; i++)
-				{
-					undoMove(board, bestFinalMoves[START_DEPTH-1-i], figures);
-				}
-			}
+
 
 			free(el);
 			continue;
 		}
+
+		/*
+		if (el->costHistory[el->depth + 1] >= 1000)
+		{
+			el->costHistory[el->depth - 1] = 1000;
+			if(el->depth-1 == 0) el->costHistory[el->depth - 1] = -4000;
+			PushFront(el->board, el->figures, el->depth - 1, !(el->AI), cost, el->firstMove, el->costHistory);
+			free(el);
+			continue;
+		}
+		*/
 
 		struct Move moves[100];
 		int movesIndex = 0;
 		getAllAvailableMoves(el->board, moves, movesIndex, el->figures, !el->AI);
 		evaluateMoves(el->board, el->figures, moves, movesIndex);
 		for (int i = 0; i < movesIndex; i++) {
-			
+
 			char newBoard[8][8];
 			struct Figure newFigures[32];
 
@@ -1360,43 +1351,53 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			makeMove(newBoard, moves[i], newFigures);
 			//printBoard(newBoard, newFigures);
 
-			int tmp = el->cost;
 
-
-			//if (moves[i].fatalMove != true)
+			// THIS HAS PROBLEMS WITH KING !!!
+			/*
+			if (moves[i].fatalMove == true)
 			{
+				moves[i].points *= el->depth;
+
+				if((depth - el->depth) % 2 == 0) bestCosts[el->depth] = moves[i].points;
+				else bestCosts[el->depth] = -moves[i].points;
+				bestFinalMoves[el->depth] = el->firstMove;
+				continue;
+			}
+			*/
+
 				//if (el->AI) el->costHistory[el->depth] += moves[i].points;
 				//else el->costHistory[el->depth] -= moves[i].points;
-				
-				el->costHistory[el->depth] = moves[i].points;
+
+				el->costHistory[el->depth - 1] = moves[i].points;
 
 				//PushFront(newBoard, newFigures, el->depth-1, !(el->AI), -(el->cost+moves[i].points), el->firstMove);
 				//undoMove(board, moves[i], figures);
 				//PushFront(newBoard, newFigures, el->depth - 1, !(el->AI), tmp, el->firstMove);
-				
+
 				/*
 				if(moves[i].points == 200)
 				{
-					printf("qwe %d ;; ", moves[i].points);
-					printBoard(el->board, el->figures);
-					printBoard(newBoard, newFigures);
+				printf("qwe %d ;; ", moves[i].points);
+				printBoard(el->board, el->figures);
+				printBoard(newBoard, newFigures);
 				}
 				*/
-				
-				PushFront(newBoard, newFigures, el->depth - 1, !(el->AI), cost, el->firstMove, el->costHistory);
-			}/*
-			else
-			{
-				moves[i].points *= el->depth;
-				//if (el->AI) el->costHistory[el->depth] += moves[i].points;
-				//else el->costHistory[el->depth] -= moves[i].points;
 
-				el->costHistory[el->depth] = moves[i].points;
-
-				//PushFront(newBoard, newFigures, 0, !el->AI, -(el->cost + moves[i].points), el->firstMove);
-				//PushFront(newBoard, newFigures, 0, !el->AI, tmp, el->firstMove);
 				PushFront(newBoard, newFigures, el->depth - 1, !(el->AI), cost, el->firstMove, el->costHistory);
-			}*/
+			//}
+			/*
+			 else
+			 {
+			 moves[i].points *= el->depth;
+			 //if (el->AI) el->costHistory[el->depth] += moves[i].points;
+			 //else el->costHistory[el->depth] -= moves[i].points;
+
+			 el->costHistory[el->depth] = moves[i].points;
+
+			 //PushFront(newBoard, newFigures, 0, !el->AI, -(el->cost + moves[i].points), el->firstMove);
+			 //PushFront(newBoard, newFigures, 0, !el->AI, tmp, el->firstMove);
+			 PushFront(newBoard, newFigures, el->depth - 1, !(el->AI), cost, el->firstMove, el->costHistory);
+			 }*/
 		}
 
 		free(el);
@@ -1407,37 +1408,38 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	while (currentDepth <= depth)
 	{
 
-		FinalElement* curr = finalElementRoot;
+	FinalElement* curr = finalElementRoot;
 
-		int bestCost = -99999;
-		Move bestMove;
+	int bestCost = -99999;
+	Move bestMove;
 
-		while (curr != NULL) 
-		{
-			if (bestCost <= curr->costHistory[currentDepth])
-			{
-				//Better cost at this depth
-			}
-		}
+	while (curr != NULL)
+	{
+	if (bestCost <= curr->costHistory[currentDepth])
+	{
+	//Better cost at this depth
+	}
+	}
 
-		currentDepth++;
+	currentDepth++;
 	}*/
 
 
-		// while queue not empty
-		// compare
-		// moves to queue
+	// while queue not empty
+	// compare
+	// moves to queue
 	//printf("%d\n", Count());
 
 	//ret.value = costs[depth-1];
 	//ret.bestMove = bestMoves[depth - 1];
 
-	ret.value = bestCosts[START_DEPTH];
-	ret.bestMove = bestFinalMoves[START_DEPTH];
-	for (int i = 0; i < (START_DEPTH+1); i++)
-	{
-		printf("%d\n", bestCosts[i]);
-	}
+	ret.value = bestCosts[DEPTH_TO_CALC - 1];
+	ret.bestMove = bestFinalMoves[DEPTH_TO_CALC - 1];
+	//for (int i = 0; i < DEPTH_TO_CALC; i++)
+	//{
+	//	printf("%d\n", bestCosts[i]);
+	//}
+	printf("%d\n", bestCosts[DEPTH_TO_CALC-1]);
 	return ret;
 }
 
@@ -1471,7 +1473,7 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 double totalTime = 0;
 int i;
 int numofMoves = 0;
-void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=true)
+void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI = true)
 {
 	numOfExecutions = 0;
 	clock_t begin = clock();
@@ -1486,23 +1488,23 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI=t
 	struct Move bestMove = mRet.bestMove;
 	numofMoves++;
 	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
-	
+
 	makeMove(board, bestMove, figures, true);
 
-	
+
 }
 
 
-void playerMove(char board[8][8], struct Figure figures[32], bool player=true)
+void playerMove(char board[8][8], struct Figure figures[32], bool player = true)
 {
 	int fx, fy, newX, newY;
 
 	bool validMove = false;
 	struct Move moves[100];
 	int movesIndex = 0;
-	
+
 	struct Move m;
-	
+
 
 	//we get user input and check if it is valid; we do that until we get a valid move
 	do {
@@ -1517,8 +1519,8 @@ void playerMove(char board[8][8], struct Figure figures[32], bool player=true)
 
 		movesIndex = 0;
 		getAllAvailableMoves(board, moves, movesIndex, figures, player);
-		
-		
+
+
 
 		for (int i = 0; i < movesIndex; i++)
 		{
@@ -1549,10 +1551,11 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	while (true)
 	{
 		printf("**** PLAYER MOVE ****\n");
-		playerMove(board, figures);
-		//randomAI(board, figures, true);
-		//miniMaxAI(board, figures, 3, false);
+		//playerMove(board, figures);
+		randomAI(board, figures, true);
+		//miniMaxAI(board, figures, DEPTH_TO_CALC, false);
 		//Print the board to see the result
+		//bestMoveAI(board, figures);
 		printBoard(board, figures);
 
 		if (gameOver)
@@ -1564,7 +1567,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		printf("****** AI MOVE ******\n");
 		//randomAI(board, figures);
 		//bestMoveAI(board, figures);
-		miniMaxAI(board, figures, START_DEPTH, true);
+		miniMaxAI(board, figures, DEPTH_TO_CALC, true);
 		//playerMove(board, figures, false);
 		//Print the board to see the result
 		printBoard(board, figures);
@@ -1573,7 +1576,7 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 		//{
 		//	printf("UNDER ATTACK\n");
 		//}
-		
+
 
 		if (gameOver)
 		{
@@ -1583,8 +1586,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 
 	}
 
-	
-	
+
+
 
 	//TESTING
 	/*for (int i = 0; i < 100; i++)
@@ -1600,7 +1603,7 @@ int main()
 
 		char board[8][8];
 		struct Figure figures[32];
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 100; i++) {
 			//INIT
 			initChessboard(figures, board);
 			//printBoard(board, figures);
@@ -1609,30 +1612,30 @@ int main()
 			//MAIN LOOP
 			gameLoop(board, figures);
 		}
-		
+
 		printf("TOTAL %lf MOVES %d", totalTime, numofMoves);
 
 	}
 
-	#pragma region Old testing
-		//TESTING getAvailableMoves function
-		/*
-		struct Move moves[100];
-		int movesIndex = 0;
+#pragma region Old testing
+	//TESTING getAvailableMoves function
+	/*
+	struct Move moves[100];
+	int movesIndex = 0;
 
 
-		int oldI = 0;
-		for (int j = 0; j < 16; j++) {
-		printf("Getting available moves for figure type %c\n", figures[j].type);
-		getAvailableMoves(figures[j], board, moves, movesIndex, figures);
-		for (int i = oldI; i < movesIndex; i++)
-		{
-		oldI++;
-		printf("Move %d: x:%d y:%d\n", i + 1, moves[i].newX, moves[i].newY);
-		}
-		}*/
-		//END TESTING
-	#pragma endregion
+	int oldI = 0;
+	for (int j = 0; j < 16; j++) {
+	printf("Getting available moves for figure type %c\n", figures[j].type);
+	getAvailableMoves(figures[j], board, moves, movesIndex, figures);
+	for (int i = oldI; i < movesIndex; i++)
+	{
+	oldI++;
+	printf("Move %d: x:%d y:%d\n", i + 1, moves[i].newX, moves[i].newY);
+	}
+	}*/
+	//END TESTING
+#pragma endregion
 
 
 	scanf_s("%d", NULL);
