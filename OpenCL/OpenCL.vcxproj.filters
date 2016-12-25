@@ -25,10 +25,10 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="kernel.cl">
+    <None Include="old_main_backup.cpp">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="old_main_backup.cpp">
+    <None Include="kernel.cpp">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

@@ -124,7 +124,7 @@
     <Image Include="MotivationalPoster.gif" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="kernel.cl" />
+    <None Include="kernel.cpp" />
     <None Include="old_main_backup.cpp" />
   </ItemGroup>
   <ItemGroup>
