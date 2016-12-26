@@ -1107,13 +1107,13 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, bool maximi
 		
 
 		struct Move moves[100];
-		/*int movesIndex = 0;
+		int movesIndex = 0;
 		getAllAvailableMoves(board, moves, &movesIndex, figures, !maximizingPlayer);
-		evaluateMoves(board, figures, moves, movesIndex);*/
+		evaluateMoves(board, figures, moves, movesIndex);
 
-		moves[0].fatalMove = true;
-		int movesIndex = 1;
-
+		refreshBoard(figures, board);
+		(*retHelper).value = moves[0].fatalMove;
+		return;
 		
 
 		for (int i = 0; i < movesIndex; i++) {
