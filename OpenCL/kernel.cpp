@@ -1,5 +1,5 @@
 
-#define DEPTH_TO_CALC 2
+#define DEPTH_TO_CALC 1
 
 #define Figure_Peasant 'p'
 #define Figure_Rook 'r'
@@ -14,9 +14,9 @@ struct Figure
 	char type;
 	int x;
 	int y;
-	bool playerFigure;
-	bool alive;
-	bool firstMove;
+	int playerFigure;
+	int alive;
+	int firstMove;
 };
 
 struct Move
@@ -28,7 +28,7 @@ struct Move
 	int newLocationFigure;
 	char oldFigureType;
 	int points;
-	bool fatalMove;
+	int fatalMove;
 };
 
 struct MinimaxReturn
@@ -42,10 +42,12 @@ struct Element
 	char board[8][8];
 	struct Figure figures[32];
 	int depth;
-	bool AI;
+	int AI;
 	int cost;
 	struct Move firstMove;
+	struct Element* next;
 	int costHistory[DEPTH_TO_CALC];
+	int parentistory[DEPTH_TO_CALC];
 };
 
 void copyHistory(int history[], int newHistory[]);
@@ -55,7 +57,7 @@ void copyFigures(struct Figure figures[32], struct Figure newFigures[32]);
 //struct Element elArr[DEPTH_TO_CALC * 100];
 //int lastInd;
 
-void PushFront(char board[8][8], struct Figure figures[32], int depth, bool AI, int cost, struct Move firstMove, int costHistory[], int *lastInd, struct Element elArr[DEPTH_TO_CALC * 100])
+void PushFront(char board[8][8], struct Figure figures[32], int depth, int AI, int cost, struct Move firstMove, int costHistory[], int *lastInd, struct Element elArr[DEPTH_TO_CALC * 100])
 {
 	for (int i = *lastInd; i > 0; i--) elArr[i] = elArr[i - 1];
 	copyBoard(board, elArr[0].board);
@@ -98,8 +100,8 @@ void copyFigures(struct Figure figures[32], struct Figure newFigures[32])
 {
 	for (int i = 0; i < 32; i++)
 	{
-		struct Figure f = figures[i];
-		newFigures[i] = f;
+		//struct Figure f = figures[i];
+		newFigures[i] = figures[i];
 	}
 }
 
@@ -112,7 +114,7 @@ void addToMoves(struct Move moves[100], int* movesIndex, int newX, int newY, cha
 	m.oldX = fig.x;
 	m.oldY = fig.y;
 	m.oldFigureType = fig.type;
-	m.fatalMove = false;
+	m.fatalMove = 0;
 
 	// if peasant reached the end of the board he is promoted to a queen
 	if (m.figure.type == Figure_Peasant)
@@ -129,15 +131,15 @@ void addToMoves(struct Move moves[100], int* movesIndex, int newX, int newY, cha
 	(*movesIndex)++;
 }
 
-bool isFriendly(char board[8][8], struct Figure f, int x, int y, struct Figure figures[32])
+int isFriendly(char board[8][8], struct Figure f, int x, int y, struct Figure figures[32])
 {
-	if (board[x][y] == Figure_Empty) return false;
-	if (figures[board[x][y]].playerFigure == f.playerFigure) return true;
-	else return false;
+	if (board[x][y] == Figure_Empty) return 0;
+	if (figures[board[x][y]].playerFigure == f.playerFigure) return 1;
+	else return 0;
 }
 
 //Check if figure is under attack
-bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
+int isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 {
 	int x, y;
 	//check up
@@ -149,8 +151,8 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		struct Figure attacker = figures[board[x][y]];
 		if (attacker.playerFigure != f.playerFigure)
 		{
-			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return true;
-			if (x == f.x - 1 && attacker.type == Figure_King) return true;
+			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return 1;
+			if (x == f.x - 1 && attacker.type == Figure_King) return 1;
 		}
 	}
 	//check down
@@ -162,8 +164,8 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		struct Figure attacker = figures[board[x][y]];
 		if (attacker.playerFigure != f.playerFigure)
 		{
-			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return true;
-			if (x == f.x + 1 && attacker.type == Figure_King) return true;
+			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return 1;
+			if (x == f.x + 1 && attacker.type == Figure_King) return 1;
 		}
 
 	}
@@ -176,8 +178,8 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		struct Figure attacker = figures[board[x][y]];
 		if (attacker.playerFigure != f.playerFigure)
 		{
-			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return true;
-			if (y == f.y + 1 && attacker.type == Figure_King) return true;
+			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return 1;
+			if (y == f.y + 1 && attacker.type == Figure_King) return 1;
 		}
 
 	}
@@ -190,8 +192,8 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		struct Figure attacker = figures[board[x][y]];
 		if (attacker.playerFigure != f.playerFigure)
 		{
-			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return true;
-			if (y == f.y - 1 && attacker.type == Figure_King) return true;
+			if (attacker.type == Figure_Rook || attacker.type == Figure_Queen) return 1;
+			if (y == f.y - 1 && attacker.type == Figure_King) return 1;
 		}
 	}
 	//check diagonal up right
@@ -203,8 +205,8 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		struct Figure attacker = figures[board[x][y]];
 		if (attacker.playerFigure != f.playerFigure)
 		{
-			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return true;
-			if (y == f.y + 1 && x == f.x - 1 && attacker.type == Figure_King) return true;
+			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return 1;
+			if (y == f.y + 1 && x == f.x - 1 && attacker.type == Figure_King) return 1;
 		}
 	}
 	//check diagonal down right
@@ -216,8 +218,8 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		struct Figure attacker = figures[board[x][y]];
 		if (attacker.playerFigure != f.playerFigure)
 		{
-			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return true;
-			if (y == f.y + 1 && x == f.x + 1 && attacker.type == Figure_King) return true;
+			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return 1;
+			if (y == f.y + 1 && x == f.x + 1 && attacker.type == Figure_King) return 1;
 		}
 	}
 	//check diagonal down left
@@ -229,8 +231,8 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		struct Figure attacker = figures[board[x][y]];
 		if (attacker.playerFigure != f.playerFigure)
 		{
-			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return true;
-			if (y == f.y - 1 && x == f.x + 1 && attacker.type == Figure_King) return true;
+			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return 1;
+			if (y == f.y - 1 && x == f.x + 1 && attacker.type == Figure_King) return 1;
 		}
 	}
 	//check diagonal up left
@@ -242,8 +244,8 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		struct Figure attacker = figures[board[x][y]];
 		if (attacker.playerFigure != f.playerFigure)
 		{
-			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return true;
-			if (y == f.y - 1 && x == f.x - 1 && attacker.type == Figure_King) return true;
+			if (attacker.type == Figure_Bishop || attacker.type == Figure_Queen) return 1;
+			if (y == f.y - 1 && x == f.x - 1 && attacker.type == Figure_King) return 1;
 		}
 	}
 
@@ -255,45 +257,45 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 	if (x - 2 >= 0 && y + 1 < 8)
 	{
 		struct Figure attacker = figures[board[x - 2][y + 1]];
-		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return 1;
 	}
 	if (x - 1 >= 0 && y + 2 < 8)
 	{
 		struct Figure attacker = figures[board[x - 1][y + 2]];
-		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return 1;
 	}
 	//down right
 	if (x + 1 < 8 && y + 2 < 8)
 	{
 		struct Figure attacker = figures[board[x + 1][y + 2]];
-		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return 1;
 	}
 	if (x + 2 < 8 && y + 1 < 8)
 	{
 		struct Figure attacker = figures[board[x + 2][y + 1]];
-		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return 1;
 	}
 	//down left
 	if (x + 2 < 8 && y - 1 >= 0)
 	{
 		struct Figure attacker = figures[board[x + 2][y - 1]];
-		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return 1;
 	}
 	if (x + 1 < 8 && y - 2 >= 0)
 	{
 		struct Figure attacker = figures[board[x + 1][y - 2]];
-		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return 1;
 	}
 	//up left
 	if (x - 1 >= 0 && y - 2 >= 0)
 	{
 		struct Figure attacker = figures[board[x - 1][y - 2]];
-		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return 1;
 	}
 	if (x - 2 >= 0 && y - 1 >= 0)
 	{
 		struct Figure attacker = figures[board[x - 2][y - 1]];
-		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return true;
+		if (attacker.playerFigure != f.playerFigure && attacker.type == Figure_Knight) return 1;
 	}
 
 	//check peasants
@@ -307,14 +309,14 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		if (x >= 0 && y < 8 && board[x][y] != Figure_Empty)
 		{
 			struct Figure attacker = figures[board[x][y]];
-			if (!attacker.playerFigure && attacker.type == Figure_Peasant) return true;
+			if (!attacker.playerFigure && attacker.type == Figure_Peasant) return 1;
 		}
 		x = f.x - 1;
 		y = f.y - 1;
 		if (x >= 0 && y >= 0 && board[x][y] != Figure_Empty)
 		{
 			struct Figure attacker = figures[board[x][y]];
-			if (!attacker.playerFigure && attacker.type == Figure_Peasant) return true;
+			if (!attacker.playerFigure && attacker.type == Figure_Peasant) return 1;
 		}
 	}
 	else
@@ -325,18 +327,18 @@ bool isUnderAttack(struct Figure f, struct Figure figures[32], char board[8][8])
 		if (x < 8 && y < 8 && board[x][y] != Figure_Empty)
 		{
 			struct Figure attacker = figures[board[x][y]];
-			if (attacker.playerFigure && attacker.type == Figure_Peasant) return true;
+			if (attacker.playerFigure && attacker.type == Figure_Peasant) return 1;
 		}
 		x = f.x + 1;
 		y = f.y - 1;
 		if (x >= 0 && y >= 0 && board[x][y] != Figure_Empty)
 		{
 			struct Figure attacker = figures[board[x][y]];
-			if (attacker.playerFigure && attacker.type == Figure_Peasant) return true;
+			if (attacker.playerFigure && attacker.type == Figure_Peasant) return 1;
 		}
 	}
 
-	return false;
+	return 0;
 
 }
 
@@ -812,7 +814,7 @@ void getAvailableMoves(struct Figure f, char board[8][8], struct Move moves[], i
 
 }
 
-void getAllAvailableMoves(char board[8][8], struct Move moves[], int* movesIndex, struct Figure figures[32], bool player)
+void getAllAvailableMoves(char board[8][8], struct Move moves[], int* movesIndex, struct Figure figures[32], int player)
 {
 	int oldI = 0;
 	int start = player ? 16 : 0; //If we are checking player moves then start at figure 16, otherwise figure 0 for AI
@@ -830,7 +832,7 @@ void getAllAvailableMoves(char board[8][8], struct Move moves[], int* movesIndex
 	}
 }
 
-void initFigure(char type, bool alive, bool playerFigure, int x, int y, struct Figure* retHelper)
+void initFigure(char type, int alive, int playerFigure, int x, int y, struct Figure* retHelper)
 {
 	struct Figure f;
 	f.type = type;
@@ -838,10 +840,10 @@ void initFigure(char type, bool alive, bool playerFigure, int x, int y, struct F
 	f.playerFigure = playerFigure;
 	f.x = x;
 	f.y = y;
-	f.firstMove = true; //Doesn't affect non-peasant figures
-	
+	f.firstMove = 1; //Doesn't affect non-peasant figures
+
 	*retHelper = f;
-	
+
 	//return f;
 }
 
@@ -853,7 +855,8 @@ void refreshBoard(struct Figure figures[32], char board[8][8])
 	for (int i = 0; i < 32; i++)
 	{
 		struct Figure f = figures[i];
-
+		//if (figures[i].y < 0) continue;
+		//if (figures[i].x < 0) continue;
 		if (f.alive) board[f.x][f.y] = i;
 
 	}
@@ -881,7 +884,7 @@ void initChessboard(struct Figure figures[32], char board[8][8])
 	for (int i = 0; i < 8; i++)
 	{
 		initFigure(Figure_Peasant, 1, 0, 1, i, &helperFig);
-		figures[8+i] = helperFig;
+		figures[8 + i] = helperFig;
 	}
 
 	initFigure(Figure_Rook, 1, 1, 7, 0, &helperFig);
@@ -901,7 +904,7 @@ void initChessboard(struct Figure figures[32], char board[8][8])
 	figures[22] = helperFig;
 	initFigure(Figure_Rook, 1, 1, 7, 7, &helperFig);
 	figures[23] = helperFig;
-	for (int i = 0; i < 8; i++) 
+	for (int i = 0; i < 8; i++)
 	{
 		initFigure(Figure_Peasant, 1, 1, 6, i, &helperFig);
 		figures[24 + i] = helperFig;
@@ -950,7 +953,7 @@ void evaluateMoves(char board[8][8], struct Figure figures[32], struct Move move
 			case Figure_King:
 				// TODO: generalize this! Now only works for AI vs player
 				points = 1000;
-				moves[i].fatalMove = true;
+				moves[i].fatalMove = 1;
 				break;
 			}
 		}
@@ -968,67 +971,66 @@ void evaluateMoves(char board[8][8], struct Figure figures[32], struct Move move
 		moves[i].points = points;
 	}
 	//we return the best move so we don't have to check later
-	
+
 	//*retHelper = moves[bestMoveIndex];
 	//return moves[bestMoveIndex];
 }
 
-void makeMove(char board[][8], struct Move* m, struct Figure* figures)
+void makeMove(char board[8][8], struct Move m, struct Figure figures[32])
 {
-	//char board[8][8];
-	refreshBoard(figures, board);
-	return;
-	
-	if (board[m->newX][m->newY] == Figure_Empty)
+	if (board[m.newX][m.newY] == Figure_Empty)
 	{
 		//OK, we can move freely
 		//We don't have to do anything (as of now)
+		board[0][0] = 1;
 	}
 	else
 	{
 		//We will kill an enemy figure by moving here
-		figures[board[m->newX][m->newY]].alive = false;
+		figures[board[m.newX][m.newY]].alive = 0;
+		board[0][0] = 2;
 
 	}
+
 	//printf("Moving %c from x:%d y:%d to x:%d y:%d\n", m.figure.type, m.figure.x, m.figure.y, m.newX, m.newY);
 	//printf("%d %d\n", figures[1].x, figures[1].y);
-	
+
 
 	// castling
-	if (m->figure.type == Figure_King && (m->oldY - m->newY == 2 || m->oldY - m->newY == -2))
+	if (m.figure.type == Figure_King && (m.oldY - m.newY == 2 || m.oldY - m.newY == -2))
 	{
-		if (m->oldY - m->newY > 0) // move left
+		if (m.oldY - m.newY > 0) // move left
 		{
-			board[m->newX][3] = board[m->figure.x][0];
-			figures[board[m->figure.x][0]].x = m->newX;
-			figures[board[m->figure.x][0]].y = 3;
-			figures[board[m->figure.x][0]].firstMove = false;
-			board[m->figure.x][0] = Figure_Empty;
+			board[m.newX][3] = board[m.figure.x][0];
+			figures[board[m.figure.x][0]].x = m.newX;
+			figures[board[m.figure.x][0]].y = 3;
+			figures[board[m.figure.x][0]].firstMove = 0;
+			board[m.figure.x][0] = Figure_Empty;
 		}
 		else // move right
 		{
-			board[m->newX][5] = board[m->figure.x][7];
-			figures[board[m->figure.x][7]].x = m->newX;
-			figures[board[m->figure.x][7]].y = 5;
-			figures[board[m->figure.x][7]].firstMove = false;
-			board[m->figure.x][7] = Figure_Empty;
+			board[m.newX][5] = board[m.figure.x][7];
+			figures[board[m.figure.x][7]].x = m.newX;
+			figures[board[m.figure.x][7]].y = 5;
+			figures[board[m.figure.x][7]].firstMove = 0;
+			board[m.figure.x][7] = Figure_Empty;
 		}
 	}
 
-	
+
 	// changes peasant to queen if he reached end of the board
-	figures[board[m->figure.x][m->figure.y]].type = m->figure.type;
+	figures[board[m.figure.x][m.figure.y]].type = m.figure.type;
 
 	// update board with figure that moved
-	board[m->newX][m->newY] = board[m->figure.x][m->figure.y];
+	board[m.newX][m.newY] = board[m.figure.x][m.figure.y];
 
-	figures[board[m->figure.x][m->figure.y]].x = m->newX;
-	figures[board[m->figure.x][m->figure.y]].y = m->newY;
-	figures[board[m->figure.x][m->figure.y]].firstMove = false; //We have to set this to false in case we moved a peasant for the first time.
-															  //printf("%d %d\n", figures[1].x, figures[1].y);
-															  
-															  // update board by clearing figure that moved
-	board[m->figure.x][m->figure.y] = Figure_Empty;
+	figures[board[m.figure.x][m.figure.y]].x = m.newX;
+	figures[board[m.figure.x][m.figure.y]].y = m.newY;
+	figures[board[m.figure.x][m.figure.y]].firstMove = 0; //We have to set this to 0 in case we moved a peasant for the first time.
+														  //printf("%d %d\n", figures[1].x, figures[1].y);
+
+														  // update board by clearing figure that moved
+	board[m.figure.x][m.figure.y] = Figure_Empty;
 
 	//refreshBoard(figures, board);
 
@@ -1046,20 +1048,20 @@ void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
 			board[m.newX][0] = board[m.figure.x][3];
 			figures[board[m.figure.x][3]].x = m.oldX;
 			figures[board[m.figure.x][3]].y = 0;
-			figures[board[m.figure.x][3]].firstMove = true;
+			figures[board[m.figure.x][3]].firstMove = 1;
 			board[m.figure.x][3] = Figure_Empty;
 
-			figures[board[m.figure.x][2]].firstMove = true;
+			figures[board[m.figure.x][2]].firstMove = 1;
 		}
 		else // move right
 		{
 			board[m.newX][7] = board[m.figure.x][5];
 			figures[board[m.figure.x][5]].x = m.newX;
 			figures[board[m.figure.x][5]].y = 7;
-			figures[board[m.figure.x][5]].firstMove = true;
+			figures[board[m.figure.x][5]].firstMove = 1;
 			board[m.figure.x][5] = Figure_Empty;
 
-			figures[board[m.figure.x][6]].firstMove = true;
+			figures[board[m.figure.x][6]].firstMove = 1;
 		}
 	}
 
@@ -1068,7 +1070,7 @@ void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
 	// reverse peasant first move
 	if (figures[board[m.newX][m.newY]].type == Figure_Peasant)
 	{
-		if ((m.figure.playerFigure && m.oldX == 6) || (!m.figure.playerFigure && m.oldX == 1)) figures[board[m.newX][m.newY]].firstMove = true;
+		if ((m.figure.playerFigure && m.oldX == 6) || (!m.figure.playerFigure && m.oldX == 1)) figures[board[m.newX][m.newY]].firstMove = 1;
 	}
 
 
@@ -1077,7 +1079,7 @@ void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
 	if (m.newLocationFigure >= 0)
 	{
 		board[m.newX][m.newY] = m.newLocationFigure;
-		figures[m.newLocationFigure].alive = true;
+		figures[m.newLocationFigure].alive = 1;
 	}
 	else
 	{
@@ -1096,66 +1098,79 @@ void copyHistory(int history[], int newHistory[])
 	}
 }
 
-void minimax(char board[8][8], struct Figure figures[32], int depth, bool maximizingPlayer, int cost, int *lastInd, struct Element elArr[DEPTH_TO_CALC * 100], struct MinimaxReturn *retHelper)
+void minimax(char board[8][8], struct Figure figures[32], int depth, int maximizingPlayer, int cost, int *lastInd, struct Element elArr[DEPTH_TO_CALC * 100], struct MinimaxReturn *retHelper)
 {
 	struct MinimaxReturn ret;
 	ret.value = -99999;
-	
-	
+
+
+	/*refreshBoard(figures, board);
+	(*retHelper).value = board[7][7];
+	return;*/
+
+
+	if (1)
 	{
 
-		
+
 
 		struct Move moves[100];
 		int movesIndex = 0;
 		getAllAvailableMoves(board, moves, &movesIndex, figures, !maximizingPlayer);
 		evaluateMoves(board, figures, moves, movesIndex);
 
-		refreshBoard(figures, board);
-		(*retHelper).value = moves[0].fatalMove;
-		return;
-		
+		/*(*retHelper).value = board[7][7];
+		return;*/
+
 
 		for (int i = 0; i < movesIndex; i++) {
+			//(*retHelper).value = moves[1].fatalMove;
 
-			
-			//bool pogoj = moves[i].fatalMove
 
-			if (moves[i].fatalMove == true)
+			//int pogoj = moves[i].fatalMove
+
+			/*if (moves[i].fatalMove == 1)
 			{
-				ret.value = 555;
-				ret.bestMove = moves[i];
-				int s = *lastInd;// = Count(lastInd, elArr);
-				struct Element retHelperElement;
-				for (int j = 0; j < s; j++)
-				{
-					PopFront(lastInd, elArr, &retHelperElement);
-				}
-				*retHelper = ret;
-				return;
-				//return ret;
+			ret.value = 555;
+			ret.bestMove = moves[i];
+			int s = *lastInd;// = Count(lastInd, elArr);
+			struct Element retHelperElement;
+			for (int j = 0; j < s; j++)
+			{
+			PopFront(lastInd, elArr, &retHelperElement);
 			}
-
-			refreshBoard(figures, board);
-			(*retHelper).value = moves[i].fatalMove;
-			return;
-
-			
-
-			char newBoard[8][8];
-			struct Figure newFigures[32];
-
-			copyBoard(board, newBoard);
-			copyFigures(figures, newFigures);
-
-			//refreshBoard(figures, board);
-			
-
-			makeMove(newBoard, &moves[i], newFigures);
-
-			ret.value = newFigures[0].y;
 			*retHelper = ret;
 			return;
+			//return ret;
+			}*/
+
+			/*refreshBoard(figures, board);
+			(*retHelper).value = moves[i].fatalMove;
+			return;*/
+
+
+
+			char newBoard[8][8];
+
+			struct Figure newFigures[32];
+
+			//problem je ker po copyfigures() pointer 'figures' ni vec inciializiran
+
+			copyBoard(board, newBoard);
+			copyFigures(figures, newFigures); // TUKAJ SE NEKAJ ZALOMI PRI KOPIRANJU? GLEJ minimaxAI KJER IZPISUJEMO POINTER KI PO KOPIRANJU NI VEC NASTAVLJEN
+
+
+
+			makeMove(newBoard, moves[i], newFigures); // CE DAMO figures POTEM DELA
+
+
+												   //(*retHelper).value = (int)newFigures;
+			/*(*retHelper).value = newBoard[0][0];
+			return;*/
+
+
+			/*(*retHelper).value = moves[i].fatalMove;
+			return;*/
 
 			int history[DEPTH_TO_CALC]; // = { -2,-2,-2,-2,-2, moves[i].points };
 			for (int j = 0; j < DEPTH_TO_CALC; j++)
@@ -1163,12 +1178,19 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, bool maximi
 			history[DEPTH_TO_CALC - 1] = moves[i].points;
 
 
+
 			PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, 0, moves[i], history, lastInd, elArr);
 
 		}
 	}
+	/*
+	(*retHelper).bestMove = elArr[16].firstMove;
+	(*retHelper).value = elArr[16].firstMove.points;
+	return;*/
 
-	
+	//(*retHelper).value = elArr[0].board[0][5];
+	//(*retHelper).value = 555;
+	//return;
 
 	int bestCosts[DEPTH_TO_CALC];
 	struct Move bestFinalMoves[DEPTH_TO_CALC];
@@ -1223,19 +1245,28 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, bool maximi
 
 			copyBoard(el.board, newBoard);
 			copyFigures(el.figures, newFigures);
-			makeMove(newBoard, &moves[i], newFigures);
+			makeMove(newBoard, moves[i], newFigures);
 
 			el.costHistory[el.depth - 1] = moves[i].points;
 			PushFront(newBoard, newFigures, el.depth - 1, !(el.AI), cost, el.firstMove, el.costHistory, lastInd, elArr);
 		}
 	}
 
+	//(*retHelper).bestMove = elArr[0].firstMove;
+	//(*retHelper).value = elArr[0].firstMove.points;
+	//(*retHelper).value = Count(lastInd, elArr) + 22;
+
+	retHelper->value = bestCosts[DEPTH_TO_CALC - 1];
+	retHelper->bestMove = bestFinalMoves[DEPTH_TO_CALC - 1];
+	return;
+
 	ret.value = bestCosts[DEPTH_TO_CALC - 1];
 	ret.bestMove = bestFinalMoves[DEPTH_TO_CALC - 1];
 
-	ret.value = 10;
-
-	*retHelper = ret;
+	//ret.value = 10;
+	retHelper->value = bestCosts[DEPTH_TO_CALC - 1];
+	retHelper->bestMove = bestFinalMoves[DEPTH_TO_CALC - 1];
+	//*retHelper = ret;
 	//retHelper->value = ret.value;
 
 
@@ -1248,39 +1279,47 @@ void miniMaxAI(struct Figure figures[32], struct MinimaxReturn *ret)
 {
 	char board[8][8];
 	refreshBoard(figures, board);
-	
 
-	
-	struct Move moves[100];
-	int movesIndex = 0;
+	//struct Figure newFigures[32];
+	//copyFigures(figures, newFigures);
+	//(*ret).value = (int)newFigures;
+	//return;
+
+	//struct Move moves[100];
+	//int movesIndex = 0;
 
 	int lastInd = 0;
 	struct Element elArr[DEPTH_TO_CALC * 100];
 
 	struct MinimaxReturn retHelper;
-	
-	minimax(board, figures, DEPTH_TO_CALC, true, 0, &lastInd, elArr, &retHelper);
+
+	/*makeMove(board, moves[0], figures);
+	(*ret).value = board[0][0];
+	return;*/
+
+
+	minimax(board, figures, DEPTH_TO_CALC, 1, 0, &lastInd, elArr, &retHelper);
 
 	/*int *x;
 	*x = 123123;*/
 
-	
+
 
 	(*ret).value = retHelper.value;
 	(*ret).bestMove = retHelper.bestMove;
 
-	//getAllAvailableMoves(board, moves, &movesIndex, figures, false);
+	//getAllAvailableMoves(board, moves, &movesIndex, figures, 0);
 	//evaluateMoves(board, figures, moves, movesIndex);
-/*
+	/*
 	int bestValue = -999999;
 	for (int i = 0; i < movesIndex; i++)
 	{
-		if (bestValue <= moves[i].points) 
-		{ 
-			bestValue = moves[i].points; 
-			(*ret).value = moves[i].points;
-			(*ret).bestMove = moves[i];
-		}
+	if (bestValue <= moves[i].points)
+	{
+	bestValue = moves[i].points;
+	(*ret).value = moves[i].points;
+	(*ret).bestMove = moves[i];
+	}
 	}*/
 
 	/*(*ret).value = moves[0].points;
@@ -1289,27 +1328,28 @@ void miniMaxAI(struct Figure figures[32], struct MinimaxReturn *ret)
 	/*
 	int lastInd = 0;
 	struct Element elArr[DEPTH_TO_CALC * 100];
-	return minimax(board, figures, DEPTH_TO_CALC, true, 0, &lastInd, elArr);
+	return minimax(board, figures, DEPTH_TO_CALC, 1, 0, &lastInd, elArr);
 	//struct Move bestMove = mRet.bestMove;
 	//makeMove(board, bestMove, figures);
 	*/
 }
 
-__kernel void minimaxGPU( 
+__kernel void minimaxGPU(
 	__global struct Figure figures[],
 	__global struct MinimaxReturn miniMaxRet[],
 	int size
-	)
-{						
+)
+{
 	int i = get_global_id(0);
-	
+
 	//miniMaxRet[]
 
-	while (i < size)
+	while(i<size)
+	//if(i==0)
 	{
 		struct Figure figs[32];
 		for (int j = 0; j < 32; j++)
-			figs[j] = figures[j + i*32];
+			figs[j] = figures[j + i * 32];
 
 		struct MinimaxReturn retHelper;
 
@@ -1319,24 +1359,26 @@ __kernel void minimaxGPU(
 		//struct MinimaxReturn m;
 		//m.value = i;
 		//miniMaxRet[i] = m;
+
 		i += get_global_size(0);
+		//i++;
 	}
 }
 
 
 /*
 __kernel void vector_add(__global const int *A,
-	__global const int *B,
-	__global int *C,
-	int size)
+__global const int *B,
+__global int *C,
+int size)
 {
-	// globalni indeks elementa							
-	int i = get_global_id(0);
-	// izracun											
-	while (i < size)
-	{
-		C[i] = A[i] + B[i];
-		i += get_global_size(0);
-	}
+// globalni indeks elementa
+int i = get_global_id(0);
+// izracun
+while (i < size)
+{
+C[i] = A[i] + B[i];
+i += get_global_size(0);
+}
 }
 */

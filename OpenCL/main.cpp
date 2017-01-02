@@ -6,7 +6,8 @@
 #include "CL/cl.h"
 
 #define SIZE			(1024)
-#define WORKGROUP_SIZE	(512)
+//#define WORKGROUP_SIZE	(512)
+#define WORKGROUP_SIZE	(256)
 #define MAX_SOURCE_SIZE	163840
 
 
@@ -31,16 +32,13 @@ void copyFigures(struct Figure figures[32], struct Figure newFigures[32]);
 
 bool gameOver = false;
 
-enum FigureType
-{
-	Figure_Peasant = 'p',
-	Figure_Rook = 'r',
-	Figure_Knight = 'h',
-	Figure_Bishop = 'b',
-	Figure_Queen = 'q',
-	Figure_King = 'k',
-	Figure_Empty = '.'
-};
+#define Figure_Peasant 'p'
+#define Figure_Rook 'r'
+#define Figure_Knight 'h'
+#define Figure_Bishop 'b'
+#define Figure_Queen 'q'
+#define Figure_King 'k'
+#define Figure_Empty '.'
 
 struct Figure
 {
@@ -48,24 +46,24 @@ struct Figure
 	int x;
 	int y;
 
-	bool playerFigure;
-	bool alive;
+	int playerFigure;
+	int alive;
 
 	//Bool to check if the figure already moved
-	bool firstMove;
+	int firstMove;
 };
 
 struct Move
 {
 	char board[8][8];
-	Figure figure;
+	struct Figure figure;
 	int newX, newY;
 	int oldX, oldY;
 	int newLocationFigure;
-	char oldFigureType;
+	char oldchar;
 	//Is this good?
 	int points;
-	bool fatalMove;
+	int fatalMove;
 
 };
 
@@ -81,7 +79,7 @@ struct Element
 	char board[8][8];
 	Figure figures[32];
 	int depth;
-	bool AI;
+	int AI;
 	int cost;
 	Move firstMove;
 	Element* next;
@@ -252,7 +250,7 @@ void addToMoves(struct Move moves[], int& movesIndex, int newX, int newY, char b
 	m.newY = newY;
 	m.oldX = fig.x;
 	m.oldY = fig.y;
-	m.oldFigureType = fig.type;
+	m.oldchar = fig.type;
 	m.fatalMove = false;
 
 	// if peasant reached the end of the board he is promoted to a queen
@@ -981,7 +979,7 @@ void getAllAvailableMoves(char board[8][8], struct Move moves[], int& movesIndex
 // e - enemy
 
 
-struct Figure initFigure(FigureType type, bool alive, bool playerFigure, int x, int y)
+struct Figure initFigure(char type, bool alive, bool playerFigure, int x, int y)
 {
 	struct Figure f;
 	f.type = type;
@@ -1225,7 +1223,7 @@ void undoMove(char board[8][8], struct Move m, struct Figure figures[32])
 	}
 
 
-	figures[board[m.newX][m.newY]].type = m.oldFigureType;
+	figures[board[m.newX][m.newY]].type = m.oldchar;
 	board[m.oldX][m.oldY] = board[m.newX][m.newY];
 	if (m.newLocationFigure >= 0)
 	{
@@ -1257,10 +1255,6 @@ void copyHistory(int history[], int newHistory[])
 		newHistory[i] = history[i];
 	}
 }
-
-
-
-
 
 
 struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int depth, bool maximizingPlayer, int cost)
@@ -1312,7 +1306,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				history[j] = 0;
 				parentHistory[j] = 0;
 			}
-				
+
 			history[DEPTH_TO_CALC_CPU - 1] = moves[i].points;
 			parentHistory[DEPTH_TO_CALC_CPU - 1] = lastParentId;
 
@@ -1320,33 +1314,33 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 
 			//if (moves[i].fatalMove != true)
 			//{
-				//if (!maximizingPlayer) history[depth] += moves[i].points;
-				//else history[depth] -= moves[i].points;
-				//PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
+			//if (!maximizingPlayer) history[depth] += moves[i].points;
+			//else history[depth] -= moves[i].points;
+			//PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
 
-				PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, 0, moves[i], history, parentHistory);
+			PushFront(newBoard, newFigures, depth - 1, !maximizingPlayer, 0, moves[i], history, parentHistory);
 			//}
 			/*
-			 else
-			 {
-			 moves[i].points *= depth;
-			 if (!maximizingPlayer) history[depth] += moves[i].points;
-			 else history[depth] -= moves[i].points;
-			 //PushFront(newBoard, newFigures, 0, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
-			 PushFront(newBoard, newFigures, 0, !maximizingPlayer, 0, moves[i], history);
-			 }*/
-			 //root->ind = i;
-			 //if (i > 0)
-			 //{
-			 //	printf("%d %d", root->ind, root->next->ind);
-			 //	printBoard(root->next->board, root->next->figures);
-			 //}
-			 //printBoard(newBoard, newFigures);
+			else
+			{
+			moves[i].points *= depth;
+			if (!maximizingPlayer) history[depth] += moves[i].points;
+			else history[depth] -= moves[i].points;
+			//PushFront(newBoard, newFigures, 0, !maximizingPlayer, -(cost + moves[i].points), moves[i]);
+			PushFront(newBoard, newFigures, 0, !maximizingPlayer, 0, moves[i], history);
+			}*/
+			//root->ind = i;
+			//if (i > 0)
+			//{
+			//	printf("%d %d", root->ind, root->next->ind);
+			//	printBoard(root->next->board, root->next->figures);
+			//}
+			//printBoard(newBoard, newFigures);
 
 		}
-		
+
 	}
-	
+
 
 
 	//int bestLocalCost = -99999;
@@ -1361,7 +1355,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	for (int i = 0; i < (START_DEPTH + 1); i++)
 	bestCosts[i] = -999999;
 	*/
-	
+
 	int bestCosts[DEPTH_TO_CALC_CPU];// = { -999999,-9999999,-9999999,-999999,-99999999 };
 	Move bestFinalMoves[DEPTH_TO_CALC_CPU];
 	for (int i = 0; i < DEPTH_TO_CALC_CPU; i++)
@@ -1380,15 +1374,15 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			lastParentId = 0;
 			oldDepth = el.depth;
 		}
-			
 
-		if(el.depth == DEPTH_TO_OFFLOAD)
+
+		if (el.depth == DEPTH_TO_OFFLOAD)
 		{
 			// push to some other struct
 			break;
 		}
 
-		
+
 		if (el.depth == 0)
 		{
 
@@ -1420,7 +1414,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			}
 			continue;
 		}
-		
+
 
 
 		struct Move moves[100];
@@ -1439,7 +1433,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			el.costHistory[el.depth - 1] = moves[i].points;
 			el.parentistory[el.depth - 1] = lastParentId;
 
-			if (el.depth != DEPTH_TO_OFFLOAD+1)
+			if (el.depth != DEPTH_TO_OFFLOAD + 1)
 			{
 				PushFront(newBoard, newFigures, el.depth - 1, !(el.AI), cost, el.firstMove, el.costHistory, el.parentistory);
 			}
@@ -1447,31 +1441,36 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			{
 				PushBack(newBoard, newFigures, el.depth - 1, !(el.AI), cost, el.firstMove, el.costHistory, el.parentistory);
 			}
-			
+
 		}
 		lastParentId++;
 	}
 
 
+	//lastInd = 5;
 	// reached offload depth and added all to struct
-	// struct MinimaxReturn* finalGPUWork = doGPUWOrk();
+	struct MinimaxReturn* finalGPUWork = doGPUWOrk();
 	// TODO: update elArr with minimax return array
+	for (int i=0; i<lastInd; i++)
+	{
+		elArr[i].costHistory[DEPTH_TO_OFFLOAD] = finalGPUWork[i].value;
+	}
+	free(finalGPUWork);
 
-
-	printf("%d\n", Count());
+	//printf("%d\n", Count());
 	/*
 	for (int i = 0; i<Count(); i++)
 	{
-		printf("%d %d %d ", i, Count(), elArr[i].depth);
-		for (int j = 0; j < DEPTH_TO_CALC_CPU; j++) printf("%d ", elArr[i].parentistory[j]);
-		printf("\n");
+	printf("%d %d %d ", i, Count(), elArr[i].depth);
+	for (int j = 0; j < DEPTH_TO_CALC_CPU; j++) printf("%d ", elArr[i].parentistory[j]);
+	printf("\n");
 	}
 	*/
 
-	for(int dpt = DEPTH_TO_OFFLOAD; dpt<DEPTH_TO_CALC_CPU; dpt++)
+	for (int dpt = DEPTH_TO_OFFLOAD; dpt<DEPTH_TO_CALC_CPU; dpt++)
 	{
 		lastParentId = 0;
-		for(int i=0; i<Count(); i++)
+		for (int i = 0; i<Count(); i++)
 		{
 			if (elArr[i].parentistory[dpt] > lastParentId) lastParentId = elArr[i].parentistory[dpt];
 		}
@@ -1483,7 +1482,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 
 		int len = Count();
 
-		
+
 		for (int i = 0; i < len; i++)
 		{
 			Element el = PopFront();
@@ -1492,10 +1491,10 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			//printf("%d", el.parentistory[dpt]);
 			if (dpt == 0)
 			{
-				if(el.costHistory[dpt] > elementSortArr[el.parentistory[dpt]].costHistory[dpt])
+				if (el.costHistory[dpt] > elementSortArr[el.parentistory[dpt]].costHistory[dpt])
 					elementSortArr[el.parentistory[dpt]] = el;
 			}
-			else if(el.costHistory[dpt]-el.costHistory[dpt-1] > elementSortArr[el.parentistory[dpt]].costHistory[dpt])
+			else if (el.costHistory[dpt] - el.costHistory[dpt - 1] > elementSortArr[el.parentistory[dpt]].costHistory[dpt])
 			{
 				el.costHistory[dpt] = el.costHistory[dpt] - el.costHistory[dpt - 1];
 				elementSortArr[el.parentistory[dpt]] = el;
@@ -1503,18 +1502,18 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		}
 
 		// elementSortArr - list of best childs
-		
+
 		/*
 		for (int i = 0; i < lastParentId; i++)
 		{
-			for (int j = 0; j < DEPTH_TO_CALC_CPU; j++)
-			{
-				printf("%d:%d ", elementSortArr[i].costHistory[j], elementSortArr[i].parentistory[j]);
-			}
-			printf("\n");
+		for (int j = 0; j < DEPTH_TO_CALC_CPU; j++)
+		{
+		printf("%d:%d ", elementSortArr[i].costHistory[j], elementSortArr[i].parentistory[j]);
+		}
+		printf("\n");
 		}
 		*/
-				
+
 
 		lastInd = 0;
 		int size = lastParentId;
@@ -1523,24 +1522,24 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		{
 			PushBack(elementSortArr[i].board, elementSortArr[i].figures, elementSortArr[i].depth, elementSortArr[i].AI,
 				elementSortArr[i].cost, elementSortArr[i].firstMove, elementSortArr[i].costHistory, elementSortArr[i].parentistory);
-			if (dpt + 1 < DEPTH_TO_CALC_CPU && elementSortArr[i].parentistory[dpt+1] > lastParentId) lastParentId = elementSortArr[i].parentistory[dpt+1];
+			if (dpt + 1 < DEPTH_TO_CALC_CPU && elementSortArr[i].parentistory[dpt + 1] > lastParentId) lastParentId = elementSortArr[i].parentistory[dpt + 1];
 		}
 
 		/*
 		for (int i = 0; i<Count(); i++)
 		{
-			printf("%d %d %d ", i, Count(), elArr[i].depth);
-			for (int j = dpt; j < DEPTH_TO_CALC_CPU; j++) printf("%d ", elArr[i].parentistory[j]);
-			printf("\n");
+		printf("%d %d %d ", i, Count(), elArr[i].depth);
+		for (int j = dpt; j < DEPTH_TO_CALC_CPU; j++) printf("%d ", elArr[i].parentistory[j]);
+		printf("\n");
 		}
 		fflush(stdout);
 		*/
 		free(elementSortArr);
 	}
-	
+
 	//printf("%d", Count());
 
-	
+
 
 
 
@@ -1714,7 +1713,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	ret.value = el.cost;
 	ret.bestMove = el.firstMove;
 	//printf("%d\n", el.cost);
-	
+
 	//ret.value = bestCosts[DEPTH_TO_CALC_CPU - 1];
 	//ret.bestMove = bestFinalMoves[DEPTH_TO_CALC_CPU - 1];
 	//for (int i = 0; i < DEPTH_TO_CALC_CPU; i++)
@@ -1773,16 +1772,16 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 	getAllAvailableMoves(board, moves, movesIndex, figures, !AI);
 	evaluateMoves(board, figures, moves, movesIndex);
 	for (int i = 0; i < movesIndex; i++) {
-		char newBoard[8][8];
-		struct Figure newFigures[32];
-		copyBoard(board, newBoard);
-		copyFigures(figures, newFigures);
-		makeMove(newBoard, moves[i], newFigures);
-		int history[DEPTH_TO_CALC_CPU]; // = { -2,-2,-2,-2,-2, moves[i].points };
-		for (int j = 0; j < DEPTH_TO_CALC_CPU; j++)
-			history[j] = 0;
-		history[DEPTH_TO_CALC_CPU - 1] = moves[i].points;
-		PushFront(newBoard, newFigures, depth - 1, !AI, 0, moves[i], history);
+	char newBoard[8][8];
+	struct Figure newFigures[32];
+	copyBoard(board, newBoard);
+	copyFigures(figures, newFigures);
+	makeMove(newBoard, moves[i], newFigures);
+	int history[DEPTH_TO_CALC_CPU]; // = { -2,-2,-2,-2,-2, moves[i].points };
+	for (int j = 0; j < DEPTH_TO_CALC_CPU; j++)
+	history[j] = 0;
+	history[DEPTH_TO_CALC_CPU - 1] = moves[i].points;
+	PushFront(newBoard, newFigures, depth - 1, !AI, 0, moves[i], history);
 	}
 	struct MinimaxReturn* mRet1 = doGPUWOrk();
 	printf("! %d ! %d !", mRet1[0].value, mRet1[10].value);
@@ -1957,9 +1956,10 @@ int main()
 
 
 
-
+int ok123 = 1;
 struct MinimaxReturn* doGPUWOrk()
 {
+	printf("States count: %d\n", lastInd);
 
 	char ch;
 	int i;
@@ -1994,10 +1994,11 @@ struct MinimaxReturn* doGPUWOrk()
 	// Inicializacija vektorjev
 	for (i = 0; i < vectorSize; i++)
 	{
-		A[i] = i;
-		B[i] = vectorSize - i;
+	A[i] = i;
+	B[i] = vectorSize - i;
 	}
 	*/
+	
 
 	struct Figure* bigFiguresArray = (struct Figure*)malloc(sizeof(struct Figure) * 32 * lastInd);
 	for (int k = 0; k<lastInd; k++)
@@ -2005,16 +2006,17 @@ struct MinimaxReturn* doGPUWOrk()
 		for (int j = 0; j < 32; j++)
 		{
 			bigFiguresArray[k * 32 + j] = elArr[k].figures[j];
+			//if (elArr[k].figures[j].y > 7) printf("Y = %d\n", elArr[k].figures[j].y);
 		}
 	}
-	
+
 	printf("%d %d", bigFiguresArray[0].x, bigFiguresArray[10].x);
 
 	struct MinimaxReturn* bigReturnArray = (struct MinimaxReturn*)malloc(sizeof(struct MinimaxReturn) * lastInd);
 
 	/*for (int i = 0; i < lastInd; i++)
 	{
-		bigReturnArray[i] = (struct MinimaxReturn*)malloc(sizeof(struct MinimaxReturn));
+	bigReturnArray[i] = (struct MinimaxReturn*)malloc(sizeof(struct MinimaxReturn));
 	}*/
 
 
@@ -2062,13 +2064,26 @@ struct MinimaxReturn* doGPUWOrk()
 	/*
 	// Alokacija pomnilnika na napravi
 	cl_mem a_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-		vectorSize * sizeof(int), A, &ret);
-	// kontekst, na"cin, koliko, lokacija na hostu, napaka	
+	vectorSize * sizeof(int), A, &ret);
+	// kontekst, na"cin, koliko, lokacija na hostu, napaka
 	cl_mem b_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-		vectorSize * sizeof(int), B, &ret);
+	vectorSize * sizeof(int), B, &ret);
 	cl_mem c_mem_obj = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
-		vectorSize * sizeof(int), NULL, &ret);
+	vectorSize * sizeof(int), NULL, &ret);
 	*/
+
+	
+
+
+
+	 // Priprava programa
+	cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, NULL, &ret);
+	// kontekst, "stevilo kazalcev na kodo, kazalci na kodo,		
+	// stringi so NULL terminated, napaka	
+	ok123 = 0;
+
+													
+
 
 	cl_mem a_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 		sizeof(struct Figure) * 32 * lastInd, bigFiguresArray, &ret);
@@ -2076,18 +2091,10 @@ struct MinimaxReturn* doGPUWOrk()
 	cl_mem b_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 		sizeof(struct MinimaxReturn) * lastInd, bigReturnArray, &ret);
 
-
-
-
-
-
-	// Priprava programa
-	cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str,
-		NULL, &ret);
-	// kontekst, "stevilo kazalcev na kodo, kazalci na kodo,		
-	// stringi so NULL terminated, napaka													
-
 	// Prevajanje
+
+	//char options[] = "-cl-opt-disable";
+
 	ret = clBuildProgram(program, 1, &device_id[0], NULL, NULL, NULL);
 	// program, "stevilo naprav, lista naprav, opcije pri prevajanju,
 	// kazalec na funkcijo, uporabni"ski argumenti
@@ -2164,7 +2171,7 @@ struct MinimaxReturn* doGPUWOrk()
 	/*
 	// Prikaz rezultatov
 	for (i = 0; i < vectorSize; i++)
-		printf("%d + %d = %d\n", A[i], B[i], C[i]);
+	printf("%d + %d = %d\n", A[i], B[i], C[i]);
 	*/
 	// "ci"s"cenje
 	ret = clFlush(command_queue);
@@ -2182,12 +2189,13 @@ struct MinimaxReturn* doGPUWOrk()
 	//free(C);
 
 
-
-	for (int i = 0; i < lastInd; i++)
+	printf("\n");
+	for (int qweqwe = 0; qweqwe < lastInd; qweqwe++)
 	{
-		refreshBoard(elArr[i].figures, elArr[i].board);
+		//refreshBoard(elArr[qweqwe].figures, elArr[qweqwe].board);
 		//printf("--ORG %d: Figure: %c\n", i, elArr[i].board[0][0]);
-		printf("%d: Points: %d, Figure: %c\n", i, bigReturnArray[i].value, bigReturnArray[i].bestMove.figure.type);
+		printf("%d: P: %d, F: %c\n", qweqwe, bigReturnArray[qweqwe].value, bigReturnArray[qweqwe].bestMove.figure.type);
+		//printf("%d: Points: %d, Figure: %c\n", qweqwe, bigReturnArray[qweqwe].value, bigReturnArray[qweqwe].bestMove.figure.type);
 	}
 
 	//printf("BEST MOVE VALUES: %d %d %d\n", bigReturnArray[0].value, bigReturnArray[10].value, bigReturnArray[18].value);
