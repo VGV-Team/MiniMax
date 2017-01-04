@@ -42,15 +42,13 @@ bool gameOver = false;
 
 struct Figure
 {
-	char type;
+	
 	int x;
 	int y;
-
 	int playerFigure;
 	int alive;
-
-	//Bool to check if the figure already moved
 	int firstMove;
+	char type;
 };
 
 struct Move
@@ -1483,7 +1481,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	// TODO: update elArr with minimax return array
 	for (int i=0; i<lastInd; i++)
 	{
-		if (finalGPUWork[i].value < -10000) continue;
+		if (finalGPUWork[i].value < -10000) { printf("HOJ");  continue; }
 		elArr[i].costHistory[DEPTH_TO_OFFLOAD] = -finalGPUWork[i].value;
 	}
 	free(finalGPUWork);
@@ -2287,16 +2285,16 @@ struct MinimaxReturn* doGPUWOrk()
 	//free(B);
 	//free(C);
 
-	/*
+	
 	printf("\n");
 	for (int qweqwe = 0; qweqwe < lastInd; qweqwe++)
 	{
 		//refreshBoard(elArr[qweqwe].figures, elArr[qweqwe].board);
 		//printf("--ORG %d: Figure: %c\n", i, elArr[i].board[0][0]);
-		printf("%d: P: %d, F: %c\n", qweqwe, bigReturnArray[qweqwe].value, bigReturnArray[qweqwe].bestMove.figure.type);
+		if (bigReturnArray[qweqwe].value != 0) printf("%d: P: %d, F: %c\n", qweqwe, bigReturnArray[qweqwe].value, bigReturnArray[qweqwe].bestMove.figure.type);
 		//printf("%d: Points: %d, Figure: %c\n", qweqwe, bigReturnArray[qweqwe].value, bigReturnArray[qweqwe].bestMove.figure.type);
 	}
-	*/
+	
 	//printf("BEST MOVE VALUES: %d %d %d\n", bigReturnArray[0].value, bigReturnArray[10].value, bigReturnArray[18].value);
 	//printf("timer: %lld\n", (q2 - q1));
 	return bigReturnArray;

@@ -11,12 +11,13 @@
 
 struct Figure
 {
-	char type;
+	
 	int x;
 	int y;
 	int playerFigure;
 	int alive;
 	int firstMove;
+	char type;
 };
 
 struct Move
