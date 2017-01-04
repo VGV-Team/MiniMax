@@ -1130,20 +1130,20 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, int maximiz
 
 			//int pogoj = moves[i].fatalMove
 
-			/*if (moves[i].fatalMove == 1)
+			if (moves[i].fatalMove == 1 && !maximizingPlayer)
 			{
-			ret.value = 555;
-			ret.bestMove = moves[i];
-			int s = *lastInd;// = Count(lastInd, elArr);
-			struct Element retHelperElement;
-			for (int j = 0; j < s; j++)
-			{
-			PopFront(lastInd, elArr, &retHelperElement);
+				ret.value = 1000;
+				ret.bestMove = moves[i];
+				int s = *lastInd;// = Count(lastInd, elArr);
+				struct Element retHelperElement;
+				for (int j = 0; j < s; j++)
+				{
+					PopFront(lastInd, elArr, &retHelperElement);
+				}
+				*retHelper = ret;
+				return;
+				//return ret;
 			}
-			*retHelper = ret;
-			return;
-			//return ret;
-			}*/
 
 			/*refreshBoard(figures, board);
 			(*retHelper).value = moves[i].fatalMove;
@@ -1187,7 +1187,7 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, int maximiz
 
 	struct Move bestMove;
 	int bestCost = -9999;
-	while(Count(lastInd, elArr)>0)
+	/*while(Count(lastInd, elArr)>0)
 	{
 		struct Element el;
 		PopFront(lastInd, elArr, &el);
@@ -1196,13 +1196,12 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, int maximiz
 			bestCost = el.cost;
 			bestMove = el.firstMove;
 		}
-	}
+	}*/
 
-	
+	//bestMove.points = 2;
 	(*retHelper).bestMove = bestMove;
 	//(*retHelper).value = elArr[16].firstMove.points;
 	(*retHelper).value = bestCost;
-	return;
 	
 
 	//(*retHelper).value = elArr[0].board[0][5];
@@ -1213,7 +1212,7 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, int maximiz
 	struct Move bestFinalMoves[DEPTH_TO_CALC];
 	for (int i = 0; i < DEPTH_TO_CALC; i++)
 		bestCosts[i] = -999999;
-
+	//return;
 
 	while (Count(lastInd, elArr) > 0)
 	{

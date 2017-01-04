@@ -1857,7 +1857,7 @@ void playerMove(char board[8][8], struct Figure figures[32], bool player = true)
 	//we get user input and check if it is valid; we do that until we get a valid move
 	do {
 		//Input format: figureX, figureY, newX, newY
-		scanf_s("%d %d %d %d", &fx, &fy, &newX, &newY);
+		scanf("%d %d %d %d", &fx, &fy, &newX, &newY);
 
 		if (fx == -1)
 		{
@@ -1951,7 +1951,7 @@ int main()
 
 		char board[8][8];
 		struct Figure figures[32];
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 100; i++) {
 			//INIT
 			initChessboard(figures, board);
 			//printBoard(board, figures);
@@ -1986,7 +1986,7 @@ int main()
 #pragma endregion
 
 
-	scanf_s("%d", NULL);
+	scanf("%d", NULL);
 	return 0;
 }
 
