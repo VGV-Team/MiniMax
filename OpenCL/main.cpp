@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include "CL/cl.h"
 
-#define SIZE			(4096)
+int SIZE = 4096;
 //#define WORKGROUP_SIZE	(512)
-#define WORKGROUP_SIZE	(128) // if <128 => driver crash
+#define WORKGROUP_SIZE	(128) // if <128 => driver crash, if >256 => memory problems
 #define MAX_SOURCE_SIZE	163840
 
 
@@ -1382,13 +1382,13 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		
 		int x = Count();
 		Element el = PopFront();
-
+		/*
 		if (Count() > max)
 		{
 			max = Count();
 			printf("%d %d %d:%d\n", Count(), el.depth, el.firstMove.oldX, el.firstMove.oldY);
 		}
-
+		*/
 
 		if (el.depth != oldDepth)
 		{
@@ -1483,6 +1483,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	// TODO: update elArr with minimax return array
 	for (int i=0; i<lastInd; i++)
 	{
+		if (finalGPUWork[i].value < -10000) continue;
 		elArr[i].costHistory[DEPTH_TO_OFFLOAD] = -finalGPUWork[i].value;
 	}
 	free(finalGPUWork);
@@ -1787,6 +1788,9 @@ void bestMoveAI(char board[8][8], struct Figure figures[32])
 double totalTime = 0;
 int i;
 int numofMoves = 0;
+
+clock_t beginOpenCL;
+clock_t endOpenCL;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI = true)
 {
 	lastInd = 0;
@@ -1823,7 +1827,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 	*/
 
 	clock_t end = clock();
-	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	double elapsed_secs = (double(end - begin) - double(endOpenCL-beginOpenCL)) / CLOCKS_PER_SEC;
 	printf("Used %lf seconds.\n", elapsed_secs);
 	//printf("%d::%lf::%llu::%d::release\n", i, elapsed_secs, numOfExecutions, depth);
 	totalTime += elapsed_secs;
@@ -1895,8 +1899,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	while (true)
 	{
 		//printf("**** PLAYER MOVE ****\n");
-		playerMove(board, figures);
-		//randomAI(board, figures, true);
+		//playerMove(board, figures);
+		randomAI(board, figures, true);
 		//miniMaxAI(board, figures, DEPTH_TO_CALC_CPU, false);
 		//Print the board to see the result
 		//bestMoveAI(board, figures);
@@ -1992,12 +1996,14 @@ int main()
 int ok123 = 1;
 struct MinimaxReturn* doGPUWOrk()
 {
+	
 	printf("States count: %d\nMax player: %d\n", lastInd, elArr[0].AI);
 
 	char ch;
 	int i;
 	cl_int ret;
 
+	SIZE = lastInd;
 	int vectorSize = SIZE;
 
 	// Branje datoteke
@@ -2053,7 +2059,7 @@ struct MinimaxReturn* doGPUWOrk()
 	}*/
 
 
-
+	beginOpenCL = clock();
 
 	// Podatki o platformi
 	cl_platform_id	platform_id[10];
@@ -2071,6 +2077,63 @@ struct MinimaxReturn* doGPUWOrk()
 		device_id, &ret_num_devices);
 	// izbrana platforma, tip naprave, koliko naprav nas zanima
 	// kazalec na naprave, dejansko "stevilo naprav
+
+
+
+
+	// INFO IZPIS ********** /
+
+	/*
+	for (int i = 0; i<ret_num_platforms; i++)
+	{
+		printf("platforma[%d]:\n", i);
+		ret = clGetPlatformInfo(platform_id[i], CL_PLATFORM_NAME, 0, NULL, &buf_len);
+		// dejanska dol"zina niza: 0, NULL, kazalec na dol!zinos
+		buf = (char *)malloc(sizeof(char*)*(buf_len + 1));
+		ret = clGetPlatformInfo(platform_id[i], CL_PLATFORM_NAME, buf_len, buf, NULL);
+		// vsebina: buf_len, buf, NULL
+		printf("  %s\n", buf);
+		free(buf);
+
+		ret = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_ALL, 10,
+			device_id, &ret_num_devices);
+		// izbrana platforma, naprava, koliko naprav nas zanima, 
+		// kazalec na naprave, dejansko "stevilo naprav
+
+		char buffer[10240];
+		cl_uint buf_uint;
+		cl_ulong buf_ulong;
+		size_t buf_size_t;
+		for (int j = 0; j<ret_num_devices; j++)
+		{
+			printf("  naprava[%d]:\n", j);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_NAME, sizeof(buffer), buffer, NULL);
+			printf("    DEVICE_NAME = %s\n", buffer);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR, sizeof(buffer), buffer, NULL);
+			printf("    DEVICE_VENDOR = %s\n", buffer);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_VERSION, sizeof(buffer), buffer, NULL);
+			printf("    DEVICE_VERSION = %s\n", buffer);
+			clGetDeviceInfo(device_id[j], CL_DRIVER_VERSION, sizeof(buffer), buffer, NULL);
+			printf("    DRIVER_VERSION = %s\n", buffer);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
+			printf("    DEVICE_MAX_COMPUTE_UNITS = %u\n", (unsigned int)buf_uint);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
+			printf("    DEVICE_MAX_CLOCK_FREQUENCY = %u\n", (unsigned int)buf_uint);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
+			printf("    DEVICE_GLOBAL_MEM_SIZE = %llu\n", (unsigned long long)buf_ulong);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
+			printf("    DEVICE_MAX_WORK_GROUP_SIZE = %u\n", (size_t)buf_size_t);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(buf_uint), &buf_uint, NULL);
+			printf("    DEVICE_MAX_WORK_ITEM_DIMENSIONS = %u\n", (unsigned int)buf_uint);
+			clGetDeviceInfo(device_id[j], CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT, sizeof(buf_uint), &buf_uint, NULL);
+			printf("    DEVICE_NATIVE_VECTOR_WIDTH_FLOAT = %u\n", (unsigned int)buf_uint);
+		}
+	}
+	*/
+	// KONEC INFO IZPIS ********** /
+
+
+
 
 	// Kontekst
 	cl_context context = clCreateContext(NULL, 1, &device_id[0], NULL, NULL, &ret);
@@ -2113,7 +2176,7 @@ struct MinimaxReturn* doGPUWOrk()
 	cl_mem b_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 		sizeof(struct MinimaxReturn) * lastInd, bigReturnArray, &ret);
 
-
+	endOpenCL = clock();
 
 	 // Priprava programa
 	cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, NULL, &ret);
@@ -2152,7 +2215,7 @@ struct MinimaxReturn* doGPUWOrk()
 	size_t buf_size_t;
 	clGetKernelWorkGroupInfo(kernel, device_id[0], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(buf_size_t), &buf_size_t, NULL);
 	printf("veckratnik niti = %d", buf_size_t);
-
+	
 	//scanf("%c", &ch);
 
 
@@ -2191,13 +2254,16 @@ struct MinimaxReturn* doGPUWOrk()
 
 
 
-
+	//time_t q1 = clock();
 
 	//// TODO: CHANGE HERE
 
 	// Kopiranje rezultatov
 	ret = clEnqueueReadBuffer(command_queue, b_mem_obj, CL_TRUE, 0,
 		sizeof(struct MinimaxReturn) * lastInd, bigReturnArray, 0, NULL, NULL);
+
+	//time_t q2 = clock();
+
 	// branje v pomnilnik iz naparave, 0 = offset
 	// zadnji trije - dogodki, ki se morajo zgoditi prej
 
@@ -2232,7 +2298,7 @@ struct MinimaxReturn* doGPUWOrk()
 	}
 	*/
 	//printf("BEST MOVE VALUES: %d %d %d\n", bigReturnArray[0].value, bigReturnArray[10].value, bigReturnArray[18].value);
-
+	//printf("timer: %lld\n", (q2 - q1));
 	return bigReturnArray;
 }
 

@@ -1196,11 +1196,13 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, int maximiz
 			bestMove = el.firstMove;
 		}
 	}
+
 	
 	(*retHelper).bestMove = bestMove;
 	//(*retHelper).value = elArr[16].firstMove.points;
 	(*retHelper).value = bestCost;
 	return;
+	
 
 	//(*retHelper).value = elArr[0].board[0][5];
 	//(*retHelper).value = 555;
@@ -1303,7 +1305,7 @@ void miniMaxAI(struct Figure figures[32], struct MinimaxReturn *ret)
 	//int movesIndex = 0;
 
 	int lastInd = 0;
-	struct Element elArr[DEPTH_TO_CALC * 1000];
+	struct Element elArr[DEPTH_TO_CALC * 100];
 
 	struct MinimaxReturn retHelper;
 
