@@ -10,13 +10,13 @@ int SIZE = 4096;
 #define WORKGROUP_SIZE	(128) // if <128 => driver crash, if >256 => memory problems
 #define MAX_SOURCE_SIZE	163840
 
-
+// MAXIMIZING PLAYER - GPUWORK, SET MANUALLY
 
 #include <time.h>  
 
 //#define START_DEPTH 4
 
-#define DEPTH_TO_CALC_CPU 2
+#define DEPTH_TO_CALC_CPU 4
 #define DEPTH_TO_OFFLOAD 0
 
 // TODO: šah = edina poteza - later
@@ -42,7 +42,7 @@ bool gameOver = false;
 
 struct Figure
 {
-	
+
 	int x;
 	int y;
 	int playerFigure;
@@ -88,52 +88,119 @@ struct Element
 };
 
 
-struct Element elArr[DEPTH_TO_CALC_CPU * DEPTH_TO_CALC_CPU * 40000];
+//struct Element elArr[DEPTH_TO_CALC_CPU * DEPTH_TO_CALC_CPU * 40000];
 int lastInd = 0;
 int lastParentId = 0;
+Element* elFirst = NULL;
+Element* elLast = NULL;
 void PushFront(char board[8][8], Figure figures[32], int depth, bool AI, int cost, Move firstMove, int costHistory[], int parentHistory[])
 {
-	for (int i = lastInd; i > 0; i--) elArr[i] = elArr[i - 1];
+	/*for (int i = lastInd; i > 0; i--) elArr[i] = elArr[i - 1];
 	copyBoard(board, elArr[0].board);
 	copyFigures(figures, elArr[0].figures);
 	elArr[0].depth = depth;
 	elArr[0].AI = AI;
 	//elArr[0].next = NULL;
 	elArr[0].cost = cost;
-	elArr[0].firstMove = firstMove;
-	copyHistory(costHistory, elArr[0].costHistory);
-	copyHistory(parentHistory, elArr[0].parentistory);
+	elArr[0].firstMove = firstMove;*/
+
+	Element* newEl = (Element*)malloc(sizeof(Element));
+	copyBoard(board, newEl->board);
+	copyFigures(figures, newEl->figures);
+	newEl->depth = depth;
+	newEl->AI = AI;
+	//elArr[0].next = NULL;
+	newEl->next = NULL;
+	newEl->cost = cost;
+	newEl->firstMove = firstMove;
+	copyHistory(costHistory, newEl->costHistory);
+	copyHistory(parentHistory, newEl->parentistory);
+
 	lastInd++;
+
+	newEl->next = elFirst;
+	elFirst = newEl;
+
+
+	if (elLast == NULL)
+	{
+		elLast = newEl;
+	}
+
+	//copyHistory(costHistory, elArr[0].costHistory);
+	//copyHistory(parentHistory, elArr[0].parentistory);
+	//lastInd++;
 }
 
 void PushBack(char board[8][8], Figure figures[32], int depth, bool AI, int cost, Move firstMove, int costHistory[], int parentHistory[])
 {
-	copyBoard(board, elArr[lastInd].board);
-	copyFigures(figures, elArr[lastInd].figures);
-	elArr[lastInd].depth = depth;
-	elArr[lastInd].AI = AI;
+
+	Element* newEl = (Element*)malloc(sizeof(Element));
+	copyBoard(board, newEl->board);
+	copyFigures(figures, newEl->figures);
+	newEl->depth = depth;
+	newEl->AI = AI;
 	//elArr[0].next = NULL;
-	elArr[lastInd].cost = cost;
-	elArr[lastInd].firstMove = firstMove;
-	copyHistory(costHistory, elArr[lastInd].costHistory);
-	copyHistory(parentHistory, elArr[lastInd].parentistory);
+	newEl->cost = cost;
+	newEl->firstMove = firstMove;
+	newEl->next = NULL;
+	copyHistory(costHistory, newEl->costHistory);
+	copyHistory(parentHistory, newEl->parentistory);
+
 	lastInd++;
+
+	if (elLast == NULL)
+	{
+		newEl->next = NULL;
+		elLast = newEl;
+	}
+	else
+	{
+		elLast->next = newEl;
+		elLast = newEl;
+	}
+
+	if (elFirst == NULL)
+	{
+		elFirst = newEl;
+	}
 }
 
-Element PopFront()
+Element* PopFront()
 {
-	Element tmp = elArr[0];
+	/*Element tmp = elArr[0];
 	for (int i = 0; i< lastInd - 1; i++) elArr[i] = elArr[i + 1];
 	lastInd--;
-	return tmp;
+	return tmp;*/
+
+	if (elFirst != NULL)
+	{
+		lastInd--;
+		Element* ret = elFirst;
+		elFirst = elFirst->next;
+		if (lastInd == 0)
+		{
+			elFirst = NULL;
+			elLast = NULL;
+		}
+
+		return ret;
+	}
+	else
+	{
+		printf("");
+	}
 }
 
-Element PopBack()
+/*Element* PopBack()
 {
-	Element tmp = elArr[0];
-	lastInd--;
-	return tmp;
-}
+Element tmp = elArr[0];
+lastInd--;
+return tmp;
+
+
+
+}*/
 
 int Count()
 {
@@ -1285,13 +1352,13 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			//char newBoard[8][8];
 			//struct Figure newFigures[32];
 
-			if (moves[i].fatalMove == true && !maximizingPlayer)
+			if (moves[i].fatalMove == true)
 			{
 				ret.value = 1000;
 				ret.bestMove = moves[i];
 				int s = Count();
 				//for (int j = 0; j < s; j++) free(PopFront());
-				for (int j = 0; j < s; j++) PopFront();
+				for (int j = 0; j < s; j++) free(PopFront());
 				return ret;
 			}
 
@@ -1376,29 +1443,30 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	int oldDepth = -999;
 	while (Count() > 0)
 	{
-		
-		
+
+
 		int x = Count();
-		Element el = PopFront();
+		Element* el = PopFront();
 		/*
 		if (Count() > max)
 		{
-			max = Count();
-			printf("%d %d %d:%d\n", Count(), el.depth, el.firstMove.oldX, el.firstMove.oldY);
+		max = Count();
+		printf("%d %d %d:%d\n", Count(), el.depth, el.firstMove.oldX, el.firstMove.oldY);
 		}
 		*/
 
-		if (el.depth != oldDepth)
+		if (el->depth != oldDepth)
 		{
 			lastParentId = 0;
-			oldDepth = el.depth;
+			oldDepth = el->depth;
 		}
 
 
-		if (el.depth == DEPTH_TO_OFFLOAD)
+		if (el->depth == DEPTH_TO_OFFLOAD)
 		{
-			PushBack(el.board, el.figures, el.depth, el.AI, el.cost, el.firstMove, el.costHistory, el.parentistory);
+			PushBack(el->board, el->figures, el->depth, el->AI, el->cost, el->firstMove, el->costHistory, el->parentistory);
 			// push to some other struct
+			free(el);
 			break;
 		}
 
@@ -1406,86 +1474,97 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		if (el.depth == 0)
 		{
 
-			if (el.costHistory[el.depth] >= bestCosts[el.depth])
-			{
+		if (el.costHistory[el.depth] >= bestCosts[el.depth])
+		{
 
-				bestCosts[el.depth] = el.costHistory[el.depth];
-				bestFinalMoves[el.depth] = el.firstMove;
+		bestCosts[el.depth] = el.costHistory[el.depth];
+		bestFinalMoves[el.depth] = el.firstMove;
 
-			}
+		}
 
-			if (lastInd == 0 || elArr[0].depth > el.depth)
-			{
-				int tmpDepth = 1;
-				int topDepth;
-				if (lastInd == 0) topDepth = DEPTH_TO_CALC_CPU;
-				else topDepth = elArr[0].depth + 1;
+		if (lastInd == 0 || elArr[0].depth > el.depth)
+		{
+		int tmpDepth = 1;
+		int topDepth;
+		if (lastInd == 0) topDepth = DEPTH_TO_CALC_CPU;
+		else topDepth = elArr[0].depth + 1;
 
-				while (topDepth > tmpDepth)
-				{
-					if (-bestCosts[tmpDepth - 1] + el.costHistory[tmpDepth] > bestCosts[tmpDepth])
-					{
-						bestCosts[tmpDepth] = -bestCosts[tmpDepth - 1] + el.costHistory[tmpDepth];
-						bestFinalMoves[tmpDepth] = bestFinalMoves[tmpDepth - 1];
-					}
-					bestCosts[tmpDepth - 1] = -99999;
-					tmpDepth++;
-				}
-			}
-			continue;
+		while (topDepth > tmpDepth)
+		{
+		if (-bestCosts[tmpDepth - 1] + el.costHistory[tmpDepth] > bestCosts[tmpDepth])
+		{
+		bestCosts[tmpDepth] = -bestCosts[tmpDepth - 1] + el.costHistory[tmpDepth];
+		bestFinalMoves[tmpDepth] = bestFinalMoves[tmpDepth - 1];
+		}
+		bestCosts[tmpDepth - 1] = -99999;
+		tmpDepth++;
+		}
+		}
+		continue;
 		}
 		*/
 
 
 		struct Move moves[100];
 		int movesIndex = 0;
-		getAllAvailableMoves(el.board, moves, movesIndex, el.figures, !el.AI);
-		evaluateMoves(el.board, el.figures, moves, movesIndex);
+		getAllAvailableMoves(el->board, moves, movesIndex, el->figures, !el->AI);
+		evaluateMoves(el->board, el->figures, moves, movesIndex);
 		for (int i = 0; i < movesIndex; i++) {
 			//printf("Cnt: %d\n", Count());
 			char newBoard[8][8];
 			struct Figure newFigures[32];
 
-			copyBoard(el.board, newBoard);
-			copyFigures(el.figures, newFigures);
+			copyBoard(el->board, newBoard);
+			copyFigures(el->figures, newFigures);
 			makeMove(newBoard, moves[i], newFigures);
 
-			el.costHistory[el.depth - 1] = moves[i].points;
-			el.parentistory[el.depth - 1] = lastParentId;
+			el->costHistory[el->depth - 1] = moves[i].points;
+			el->parentistory[el->depth - 1] = lastParentId;
 
 			//printf("%d\n", movesIndex);
-			if(el.depth == 0)
+			if (el->depth == 0)
 			{
 				printf("qweqweqwe\n");
 			}
 
-			if (el.depth > DEPTH_TO_OFFLOAD+1)
+			if (el->depth > DEPTH_TO_OFFLOAD + 1)
 			{
-				PushFront(newBoard, newFigures, el.depth - 1, !(el.AI), cost, el.firstMove, el.costHistory, el.parentistory);
+				PushFront(newBoard, newFigures, el->depth - 1, !(el->AI), cost, el->firstMove, el->costHistory, el->parentistory);
 			}
 			else
 			{
-				PushBack(newBoard, newFigures, el.depth - 1, !(el.AI), cost, el.firstMove, el.costHistory, el.parentistory);
+				PushBack(newBoard, newFigures, el->depth - 1, !(el->AI), cost, el->firstMove, el->costHistory, el->parentistory);
 			}
 
 		}
 		lastParentId++;
+		free(el);
 	}
 
 
 	//lastInd = 5;
 	// reached offload depth and added all to struct
-	
-	
+
+
 	struct MinimaxReturn* finalGPUWork = doGPUWOrk();
 	// TODO: update elArr with minimax return array
-	for (int i=0; i<lastInd; i++)
+	/*for (int i=0; i<lastInd; i++)
+	{
+	if (finalGPUWork[i].value < -10000) { printf("HOJ");  continue; }
+	elArr[i].costHistory[DEPTH_TO_OFFLOAD] = -finalGPUWork[i].value;
+	}*/
+	Element* iter = elFirst;
+	int i = 0;
+	while (iter != NULL)
 	{
 		if (finalGPUWork[i].value < -10000) { printf("HOJ");  continue; }
-		elArr[i].costHistory[DEPTH_TO_OFFLOAD] = -finalGPUWork[i].value;
+		iter->costHistory[DEPTH_TO_OFFLOAD] = -finalGPUWork[i].value;
+		iter = iter->next;
+		i++;
 	}
+
 	free(finalGPUWork);
-	
+
 	printf("%d", lastInd);
 
 	//printf("%d\n", Count());
@@ -1501,14 +1580,26 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	for (int dpt = DEPTH_TO_OFFLOAD; dpt<DEPTH_TO_CALC_CPU; dpt++)
 	{
 		lastParentId = 0;
-		for (int i = 0; i<Count(); i++)
+		/*for (int i = 0; i<Count(); i++)
 		{
-			if (elArr[i].parentistory[dpt] > lastParentId) lastParentId = elArr[i].parentistory[dpt];
+		if (elArr[i].parentistory[dpt] > lastParentId) lastParentId = elArr[i].parentistory[dpt];
 		}
+		lastParentId++;*/
+		Element* iter = elFirst;
+		while (iter != NULL)
+		{
+			if (iter->parentistory[dpt] > lastParentId) lastParentId = iter->parentistory[dpt];
+			iter = iter->next;
+		}
+
 		lastParentId++;
 
-		Element* elementSortArr = (Element*)malloc((lastParentId) * sizeof(Element));
-		for (int i = 0; i < lastParentId; i++) elementSortArr[i].costHistory[dpt] = -99999;
+		Element** elementSortArr = (Element**)malloc((lastParentId) * sizeof(Element*));
+		for (int i = 0; i < lastParentId; i++)
+		{
+			elementSortArr[i] = (Element*)malloc(sizeof(Element));
+			(*elementSortArr[i]).costHistory[dpt] = -99999;
+		}
 
 
 		int len = Count();
@@ -1516,20 +1607,22 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 
 		for (int i = 0; i < len; i++)
 		{
-			Element el = PopFront();
+			Element* el = PopFront();
 			//printf("d:%d p:%d %d>%d \n", dpt, el.parentistory[dpt], el.costHistory[dpt], elementSortArr[el.parentistory[dpt]].costHistory[dpt]);
 			//fflush(stdout);
 			//printf("%d", el.parentistory[dpt]);
 			if (dpt == 0)
 			{
-				if (el.costHistory[dpt] > elementSortArr[el.parentistory[dpt]].costHistory[dpt])
-					elementSortArr[el.parentistory[dpt]] = el;
+				if (el->costHistory[dpt] >(*elementSortArr[el->parentistory[dpt]]).costHistory[dpt])
+					elementSortArr[el->parentistory[dpt]] = el;
+				//else free(el);
 			}
-			else if (el.costHistory[dpt] - el.costHistory[dpt - 1] > elementSortArr[el.parentistory[dpt]].costHistory[dpt])
+			else if (el->costHistory[dpt] - el->costHistory[dpt - 1] > (*elementSortArr[el->parentistory[dpt]]).costHistory[dpt])
 			{
-				el.costHistory[dpt] = el.costHistory[dpt] - el.costHistory[dpt - 1];
-				elementSortArr[el.parentistory[dpt]] = el;
+				el->costHistory[dpt] = el->costHistory[dpt] - el->costHistory[dpt - 1];
+				elementSortArr[el->parentistory[dpt]] = el;
 			}
+
 		}
 
 		// elementSortArr - list of best childs
@@ -1551,9 +1644,11 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		lastParentId = 0;
 		for (int i = 0; i<size; i++)
 		{
-			PushBack(elementSortArr[i].board, elementSortArr[i].figures, elementSortArr[i].depth, elementSortArr[i].AI,
-				elementSortArr[i].cost, elementSortArr[i].firstMove, elementSortArr[i].costHistory, elementSortArr[i].parentistory);
-			if (dpt + 1 < DEPTH_TO_CALC_CPU && elementSortArr[i].parentistory[dpt + 1] > lastParentId) lastParentId = elementSortArr[i].parentistory[dpt + 1];
+			PushBack(elementSortArr[i]->board, elementSortArr[i]->figures, elementSortArr[i]->depth, elementSortArr[i]->AI,
+				elementSortArr[i]->cost, elementSortArr[i]->firstMove, elementSortArr[i]->costHistory, elementSortArr[i]->parentistory);
+			if (dpt + 1 < DEPTH_TO_CALC_CPU && elementSortArr[i]->parentistory[dpt + 1] > lastParentId) lastParentId = elementSortArr[i]->parentistory[dpt + 1];
+
+			//free(elementSortArr[i]);
 		}
 
 		/*
@@ -1738,12 +1833,12 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	//ret.value = costs[depth-1];
 	//ret.bestMove = bestMoves[depth - 1];
 
-	Element el = PopFront();
+	Element* el = PopFront();
 	printf("\n");
-	for (int i = 0; i < DEPTH_TO_CALC_CPU; i++) printf("%d ", el.costHistory[i]);
+	for (int i = 0; i < DEPTH_TO_CALC_CPU; i++) printf("%d ", el->costHistory[i]);
 	printf("\n");
-	ret.value = el.costHistory[DEPTH_TO_CALC_CPU-1];
-	ret.bestMove = el.firstMove;
+	ret.value = el->costHistory[DEPTH_TO_CALC_CPU - 1];
+	ret.bestMove = el->firstMove;
 	//printf("%d\n", el.cost);
 
 	//ret.value = bestCosts[DEPTH_TO_CALC_CPU - 1];
@@ -1791,7 +1886,11 @@ clock_t beginOpenCL;
 clock_t endOpenCL;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI = true)
 {
+	elFirst = NULL;
+	elLast = NULL;
+
 	lastInd = 0;
+	lastParentId = 0;
 
 	numOfExecutions = 0;
 	clock_t begin = clock();
@@ -1825,7 +1924,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 	*/
 
 	clock_t end = clock();
-	double elapsed_secs = (double(end - begin) - double(endOpenCL-beginOpenCL)) / CLOCKS_PER_SEC;
+	double elapsed_secs = (double(end - begin) - double(endOpenCL - beginOpenCL)) / CLOCKS_PER_SEC;
 	beginOpenCL = 0;
 	endOpenCL = 0;
 	printf("Used %lf seconds.\n", elapsed_secs);
@@ -1838,7 +1937,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
-
+	printf("lastIND: %d\n", lastInd);
 	//free(mRet1);
 }
 
@@ -1951,7 +2050,7 @@ int main()
 
 		char board[8][8];
 		struct Figure figures[32];
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 1; i++) {
 			//INIT
 			initChessboard(figures, board);
 			//printBoard(board, figures);
@@ -1996,8 +2095,8 @@ int main()
 int ok123 = 1;
 struct MinimaxReturn* doGPUWOrk()
 {
-	
-	printf("States count: %d\nMax player: %d\n", lastInd, elArr[0].AI);
+
+	printf("States count: %d\nMax player: %d\n", lastInd, elFirst->AI);
 
 	char ch;
 	int i;
@@ -2037,18 +2136,31 @@ struct MinimaxReturn* doGPUWOrk()
 	B[i] = vectorSize - i;
 	}
 	*/
-	
+
 
 	struct Figure* bigFiguresArray = (struct Figure*)malloc(sizeof(struct Figure) * 32 * lastInd);
-	for (int k = 0; k<lastInd; k++)
+
+	/*for (int k = 0; k<lastInd; k++)
+	{
+	for (int j = 0; j < 32; j++)
+	{
+	bigFiguresArray[k * 32 + j] = [k].figures[j];
+	//if (elArr[k].figures[j].y > 7) printf("Y = %d\n", elArr[k].figures[j].y);
+	}
+	}*/
+	Element* iter = elFirst;
+	int k = 0;
+	while (iter != NULL)
 	{
 		for (int j = 0; j < 32; j++)
 		{
-			bigFiguresArray[k * 32 + j] = elArr[k].figures[j];
+			bigFiguresArray[k * 32 + j] = iter->figures[j];
+			//printf("%d\n", iter->figures[j].x);
 			//if (elArr[k].figures[j].y > 7) printf("Y = %d\n", elArr[k].figures[j].y);
 		}
+		iter = iter->next;
+		k++;
 	}
-
 	//printf("%d %d", bigFiguresArray[0].x, bigFiguresArray[10].x);
 
 	struct MinimaxReturn* bigReturnArray = (struct MinimaxReturn*)malloc(sizeof(struct MinimaxReturn) * lastInd);
@@ -2086,48 +2198,48 @@ struct MinimaxReturn* doGPUWOrk()
 	/*
 	for (int i = 0; i<ret_num_platforms; i++)
 	{
-		printf("platforma[%d]:\n", i);
-		ret = clGetPlatformInfo(platform_id[i], CL_PLATFORM_NAME, 0, NULL, &buf_len);
-		// dejanska dol"zina niza: 0, NULL, kazalec na dol!zinos
-		buf = (char *)malloc(sizeof(char*)*(buf_len + 1));
-		ret = clGetPlatformInfo(platform_id[i], CL_PLATFORM_NAME, buf_len, buf, NULL);
-		// vsebina: buf_len, buf, NULL
-		printf("  %s\n", buf);
-		free(buf);
+	printf("platforma[%d]:\n", i);
+	ret = clGetPlatformInfo(platform_id[i], CL_PLATFORM_NAME, 0, NULL, &buf_len);
+	// dejanska dol"zina niza: 0, NULL, kazalec na dol!zinos
+	buf = (char *)malloc(sizeof(char*)*(buf_len + 1));
+	ret = clGetPlatformInfo(platform_id[i], CL_PLATFORM_NAME, buf_len, buf, NULL);
+	// vsebina: buf_len, buf, NULL
+	printf("  %s\n", buf);
+	free(buf);
 
-		ret = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_ALL, 10,
-			device_id, &ret_num_devices);
-		// izbrana platforma, naprava, koliko naprav nas zanima, 
-		// kazalec na naprave, dejansko "stevilo naprav
+	ret = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_ALL, 10,
+	device_id, &ret_num_devices);
+	// izbrana platforma, naprava, koliko naprav nas zanima,
+	// kazalec na naprave, dejansko "stevilo naprav
 
-		char buffer[10240];
-		cl_uint buf_uint;
-		cl_ulong buf_ulong;
-		size_t buf_size_t;
-		for (int j = 0; j<ret_num_devices; j++)
-		{
-			printf("  naprava[%d]:\n", j);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_NAME, sizeof(buffer), buffer, NULL);
-			printf("    DEVICE_NAME = %s\n", buffer);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR, sizeof(buffer), buffer, NULL);
-			printf("    DEVICE_VENDOR = %s\n", buffer);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_VERSION, sizeof(buffer), buffer, NULL);
-			printf("    DEVICE_VERSION = %s\n", buffer);
-			clGetDeviceInfo(device_id[j], CL_DRIVER_VERSION, sizeof(buffer), buffer, NULL);
-			printf("    DRIVER_VERSION = %s\n", buffer);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
-			printf("    DEVICE_MAX_COMPUTE_UNITS = %u\n", (unsigned int)buf_uint);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
-			printf("    DEVICE_MAX_CLOCK_FREQUENCY = %u\n", (unsigned int)buf_uint);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
-			printf("    DEVICE_GLOBAL_MEM_SIZE = %llu\n", (unsigned long long)buf_ulong);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
-			printf("    DEVICE_MAX_WORK_GROUP_SIZE = %u\n", (size_t)buf_size_t);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(buf_uint), &buf_uint, NULL);
-			printf("    DEVICE_MAX_WORK_ITEM_DIMENSIONS = %u\n", (unsigned int)buf_uint);
-			clGetDeviceInfo(device_id[j], CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT, sizeof(buf_uint), &buf_uint, NULL);
-			printf("    DEVICE_NATIVE_VECTOR_WIDTH_FLOAT = %u\n", (unsigned int)buf_uint);
-		}
+	char buffer[10240];
+	cl_uint buf_uint;
+	cl_ulong buf_ulong;
+	size_t buf_size_t;
+	for (int j = 0; j<ret_num_devices; j++)
+	{
+	printf("  naprava[%d]:\n", j);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_NAME, sizeof(buffer), buffer, NULL);
+	printf("    DEVICE_NAME = %s\n", buffer);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR, sizeof(buffer), buffer, NULL);
+	printf("    DEVICE_VENDOR = %s\n", buffer);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_VERSION, sizeof(buffer), buffer, NULL);
+	printf("    DEVICE_VERSION = %s\n", buffer);
+	clGetDeviceInfo(device_id[j], CL_DRIVER_VERSION, sizeof(buffer), buffer, NULL);
+	printf("    DRIVER_VERSION = %s\n", buffer);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
+	printf("    DEVICE_MAX_COMPUTE_UNITS = %u\n", (unsigned int)buf_uint);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
+	printf("    DEVICE_MAX_CLOCK_FREQUENCY = %u\n", (unsigned int)buf_uint);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("    DEVICE_GLOBAL_MEM_SIZE = %llu\n", (unsigned long long)buf_ulong);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
+	printf("    DEVICE_MAX_WORK_GROUP_SIZE = %u\n", (size_t)buf_size_t);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(buf_uint), &buf_uint, NULL);
+	printf("    DEVICE_MAX_WORK_ITEM_DIMENSIONS = %u\n", (unsigned int)buf_uint);
+	clGetDeviceInfo(device_id[j], CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT, sizeof(buf_uint), &buf_uint, NULL);
+	printf("    DEVICE_NATIVE_VECTOR_WIDTH_FLOAT = %u\n", (unsigned int)buf_uint);
+	}
 	}
 	*/
 	// KONEC INFO IZPIS ********** /
@@ -2168,7 +2280,7 @@ struct MinimaxReturn* doGPUWOrk()
 	vectorSize * sizeof(int), NULL, &ret);
 	*/
 
-	
+
 
 	cl_mem a_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 		sizeof(struct Figure) * 32 * lastInd, bigFiguresArray, &ret);
@@ -2176,15 +2288,15 @@ struct MinimaxReturn* doGPUWOrk()
 	cl_mem b_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 		sizeof(struct MinimaxReturn) * lastInd, bigReturnArray, &ret);
 
-	
 
-	 // Priprava programa
+
+	// Priprava programa
 	cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, NULL, &ret);
 	// kontekst, "stevilo kazalcev na kodo, kazalci na kodo,		
 	// stringi so NULL terminated, napaka	
 	ok123 = 0;
 
-													
+
 
 
 	// Prevajanje
@@ -2217,7 +2329,7 @@ struct MinimaxReturn* doGPUWOrk()
 	size_t buf_size_t;
 	clGetKernelWorkGroupInfo(kernel, device_id[0], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(buf_size_t), &buf_size_t, NULL);
 	printf("veckratnik niti = %d", buf_size_t);
-	
+
 	//scanf("%c", &ch);
 
 
@@ -2289,7 +2401,7 @@ struct MinimaxReturn* doGPUWOrk()
 	//free(B);
 	//free(C);
 
-	
+
 	printf("\n");
 	for (int qweqwe = 0; qweqwe < lastInd; qweqwe++)
 	{
@@ -2298,7 +2410,7 @@ struct MinimaxReturn* doGPUWOrk()
 		if (bigReturnArray[qweqwe].value < -99999) printf("%d: P: %d, F: %c\n", qweqwe, bigReturnArray[qweqwe].value, bigReturnArray[qweqwe].bestMove.figure.type);
 		//printf("%d: Points: %d, Figure: %c\n", qweqwe, bigReturnArray[qweqwe].value, bigReturnArray[qweqwe].bestMove.figure.type);
 	}
-	
+
 	//printf("BEST MOVE VALUES: %d %d %d\n", bigReturnArray[0].value, bigReturnArray[10].value, bigReturnArray[18].value);
 	//printf("timer: %lld\n", (q2 - q1));
 	return bigReturnArray;

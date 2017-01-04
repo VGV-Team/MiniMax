@@ -16,7 +16,7 @@ int SIZE = 4096;
 
 //#define START_DEPTH 4
 
-#define DEPTH_TO_CALC_CPU 4
+#define DEPTH_TO_CALC_CPU 1
 #define DEPTH_TO_OFFLOAD 0
 
 // TODO: šah = edina poteza - later
@@ -185,10 +185,6 @@ Element* PopFront()
 		}
 
 		return ret;
-	}
-	else
-	{
-		printf("");
 	}
 }
 
@@ -1352,13 +1348,13 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			//char newBoard[8][8];
 			//struct Figure newFigures[32];
 
-			if (moves[i].fatalMove == true)
+			if (moves[i].fatalMove == true && !maximizingPlayer)
 			{
 				ret.value = 1000;
 				ret.bestMove = moves[i];
 				int s = Count();
 				//for (int j = 0; j < s; j++) free(PopFront());
-				for (int j = 0; j < s; j++) free(PopFront());
+				for (int j = 0; j < s; j++) PopFront();
 				return ret;
 			}
 
@@ -1589,10 +1585,10 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 		while (iter != NULL)
 		{
 			if (iter->parentistory[dpt] > lastParentId) lastParentId = iter->parentistory[dpt];
+			iter->costHistory[DEPTH_TO_OFFLOAD] = -finalGPUWork[i].value;
 			iter = iter->next;
+			lastParentId++;
 		}
-
-		lastParentId++;
 
 		Element** elementSortArr = (Element**)malloc((lastParentId) * sizeof(Element*));
 		for (int i = 0; i < lastParentId; i++)
@@ -1615,14 +1611,12 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 			{
 				if (el->costHistory[dpt] >(*elementSortArr[el->parentistory[dpt]]).costHistory[dpt])
 					elementSortArr[el->parentistory[dpt]] = el;
-				//else free(el);
 			}
 			else if (el->costHistory[dpt] - el->costHistory[dpt - 1] > (*elementSortArr[el->parentistory[dpt]]).costHistory[dpt])
 			{
 				el->costHistory[dpt] = el->costHistory[dpt] - el->costHistory[dpt - 1];
 				elementSortArr[el->parentistory[dpt]] = el;
 			}
-
 		}
 
 		// elementSortArr - list of best childs
@@ -1648,7 +1642,7 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 				elementSortArr[i]->cost, elementSortArr[i]->firstMove, elementSortArr[i]->costHistory, elementSortArr[i]->parentistory);
 			if (dpt + 1 < DEPTH_TO_CALC_CPU && elementSortArr[i]->parentistory[dpt + 1] > lastParentId) lastParentId = elementSortArr[i]->parentistory[dpt + 1];
 
-			//free(elementSortArr[i]);
+			free(elementSortArr[i]);
 		}
 
 		/*
@@ -1886,11 +1880,7 @@ clock_t beginOpenCL;
 clock_t endOpenCL;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI = true)
 {
-	elFirst = NULL;
-	elLast = NULL;
-
 	lastInd = 0;
-	lastParentId = 0;
 
 	numOfExecutions = 0;
 	clock_t begin = clock();
@@ -1937,7 +1927,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 	printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, mRet.value);
 
 	makeMove(board, bestMove, figures, true);
-	printf("lastIND: %d\n", lastInd);
+
 	//free(mRet1);
 }
 
@@ -2050,7 +2040,7 @@ int main()
 
 		char board[8][8];
 		struct Figure figures[32];
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 10; i++) {
 			//INIT
 			initChessboard(figures, board);
 			//printBoard(board, figures);

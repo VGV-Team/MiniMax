@@ -40,15 +40,15 @@ struct MinimaxReturn
 
 struct Element
 {
-	char board[8][8];
+	struct Move firstMove;
+	struct Element* next;
 	struct Figure figures[32];
+	int costHistory[DEPTH_TO_CALC];
+	int parentistory[DEPTH_TO_CALC];
 	int depth;
 	int AI;
 	int cost;
-	struct Move firstMove;
-	struct Element* next;
-	int costHistory[DEPTH_TO_CALC];
-	int parentistory[DEPTH_TO_CALC];
+	char board[8][8];
 };
 
 void copyHistory(int history[], int newHistory[]);
@@ -106,7 +106,7 @@ void copyFigures(struct Figure figures[32], struct Figure newFigures[32])
 	}
 }
 
-void addToMoves(struct Move moves[100], int* movesIndex, int newX, int newY, char board[8][8], struct Figure fig)
+void addToMoves(struct Move moves[], int* movesIndex, int newX, int newY, char board[8][8], struct Figure fig)
 {
 	struct Move m;
 	m.figure = fig;
@@ -1115,7 +1115,7 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, int maximiz
 
 
 
-		struct Move moves[100];
+		struct Move moves[60];
 		int movesIndex = 0;
 		getAllAvailableMoves(board, moves, &movesIndex, figures, !maximizingPlayer);
 		evaluateMoves(board, figures, moves, movesIndex);
@@ -1130,7 +1130,7 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, int maximiz
 
 			//int pogoj = moves[i].fatalMove
 
-			if (moves[i].fatalMove == 1 && !maximizingPlayer)
+			if (moves[i].fatalMove == 1)
 			{
 				ret.value = 1000;
 				ret.bestMove = moves[i];
@@ -1250,7 +1250,7 @@ void minimax(char board[8][8], struct Figure figures[32], int depth, int maximiz
 			continue;
 		}
 
-		struct Move moves[100];
+		struct Move moves[60];
 		int movesIndex = 0;
 		getAllAvailableMoves(el.board, moves, &movesIndex, el.figures, !el.AI);
 		evaluateMoves(el.board, el.figures, moves, movesIndex);
@@ -1314,7 +1314,7 @@ void miniMaxAI(struct Figure figures[32], struct MinimaxReturn *ret)
 	return;*/
 
 
-	minimax(board, figures, DEPTH_TO_CALC, 0, 0, &lastInd, elArr, &retHelper);
+	minimax(board, figures, DEPTH_TO_CALC, 1, 0, &lastInd, elArr, &retHelper);
 
 	/*int *x;
 	*x = 123123;*/
