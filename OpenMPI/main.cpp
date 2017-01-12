@@ -10,7 +10,7 @@
 // TODO: endless game with two kings - later
 // TODO: pat - no need yet
 
-#define DEPTH 5
+#define DEPTH 6
 
 
 bool gameOver = false;
@@ -841,10 +841,10 @@ void refreshBoard(struct Figure figures[32], char board[8][8])
 			board[i][j] = Figure_Empty;
 	for (int i = 0; i < 32; i++)
 	{
-		Figure f = figures[i];
+		//Figure f = figures[i];
 		/*if(f.playerFigure) board[f.x][f.y] = f.type;
 		else board[f.x][f.y] = f.type - 32;*/
-		if (f.alive) board[f.x][f.y] = i;
+		if (figures[i].alive) board[figures[i].x][figures[i].y] = i;
 
 	}
 }
@@ -1211,10 +1211,11 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 {
 	numOfExecutions = 0;
 	clock_t begin = clock();
-	printf("[%d] MINIMAXAI\n", myid);
-	fflush(stdout);
+	//printf("[%d] MINIMAXAI\n", myid);
+	//fflush(stdout);
 	if (myid == 0)
 	{
+		/*
 		Move moves[100];
 		int movesIndex = 0;
 		
@@ -1251,31 +1252,70 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 
 		
 		}
+		*/
+		//printf("[%d] Sending figure states\n", myid);
+		//fflush(stdout);
 
-		printf("[%d] Sending figure states\n", myid);
-		fflush(stdout);
+		MPI_Bcast(figures, sizeof(Figure) * 32, MPI_CHAR, 0, MPI_COMM_WORLD);
 
+		
+
+		/*
 		for (int i = 0; i < movesIndex; i++)
 		{
 			MPI_Send(&figuresToSend[i*32], sizeof(Figure) * 32, MPI_CHAR, i+1, 0, MPI_COMM_WORLD);
 		}
-
-		printf("[%d] Recieving minimax return\n", myid);
-		fflush(stdout);
+		*/
+		//printf("[%d] Recieving minimax return\n", myid);
+		//fflush(stdout);
+		/*
 		for (int i = 0; i < movesIndex; i++)
 		{
+			int tmp = i;
+			int tmp2 = 1;
+			printf("S: %d,%d,%d \n", i, tmp, tmp2);
 			int returnValue = 0;
 			MPI_Recv(&returnValue, sizeof(int), MPI_INT, i+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			
+			printf("E: %d,%d,%d \n", i, tmp, tmp2);
 			printf("[%d] Received %d from process %d\n", myid, returnValue, i+1);
 			fflush(stdout);
 
-			if (moves[i].points - returnValue  > bestValue)
+			if (moves[i].points - returnValue  >= bestValue)
 			{
 				bestValue = moves[i].points - returnValue;
 				bestMoveIndex = i;
 			}
 		}
+		*/
+		Move moves[100];
+		int movesIndex = 0;
+		getAllAvailableMoves(board, moves, movesIndex, figures, !AI);
+
+		int bestValue = -9999;
+		int bestMoveIndex = -1;
+		for (int i = 0; i < size-1; i++)
+		{
+			int tmp = i;
+			int tmp2 = 1;
+			//printf("S: %d,%d,%d \n", i, tmp, tmp2);
+			//fflush(stdout);
+			int returnValue = 0;
+			MPI_Recv(&returnValue, sizeof(int), MPI_INT, i + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			//printf("E: %d,%d,%d \n", i, tmp, tmp2);
+			//fflush(stdout);
+			//printf("[%d] Received %d from process %d\n", myid, returnValue, i + 1);
+			//fflush(stdout);
+
+			moves[i].points = returnValue;
+
+			if (returnValue >= bestValue)
+			{
+				bestValue = returnValue;
+				bestMoveIndex = i;
+			}
+		}
+
+		
 
 		clock_t end = clock();
 		double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
@@ -1442,10 +1482,11 @@ int main(int argc, char *argv[])
 		{
 			// Receive figure state
 			Figure figures[32];
-			
-			MPI_Recv(&figures, sizeof(Figure) * 32, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			printf("[%d] Received figures!", myid);
+			MPI_Bcast(figures, sizeof(Figure) * 32, MPI_CHAR, 0, MPI_COMM_WORLD);
+			//MPI_Recv(&figures, sizeof(Figure) * 32, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			//printf("[%d] Received figures!", myid);
 			fflush(stdout);
+
 			if (figures[0].x == -555)
 			{
 				//terminator
@@ -1454,11 +1495,23 @@ int main(int argc, char *argv[])
 			// Run minimax
 			char board[8][8];
 			refreshBoard(figures, board);
+			struct Move moves[100];
+			int movesIndex = 0;
+			getAllAvailableMoves(board, moves, movesIndex, figures, false);
+			if (movesIndex <= myid)
+			{
+				int r = -99999;
+				MPI_Send(&r, sizeof(int), MPI_INT, 0, 0, MPI_COMM_WORLD);
+				continue;
+			}
+			evaluateMoves(board, figures, moves, movesIndex);
+			makeMove(board, moves[myid - 1], figures, false);
 			MinimaxReturn ret = minimax(board, figures, DEPTH - 1, false);
+			int retInt = moves[myid - 1].points - ret.value;
 			// Return best value
-			printf("[%d] Sending value %d\n", myid, ret.value);
+			//printf("[%d] Sending value %d\n", myid, ret.value);
 			fflush(stdout);
-			MPI_Send(&ret.value, sizeof(int), MPI_INT, 0, 0, MPI_COMM_WORLD);
+			MPI_Send(&retInt, sizeof(int), MPI_INT, 0, 0, MPI_COMM_WORLD);
 		}
 
 	}
