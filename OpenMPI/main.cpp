@@ -1302,6 +1302,8 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 			int returnValue = 0;
 			MPI_Recv(&returnValue, sizeof(int), MPI_INT, i + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			//printf("E: %d,%d,%d \n", i, tmp, tmp2);
+
+			//printf("%d %d %c \n", i, returnValue, moves[i].figure.type);
 			//fflush(stdout);
 			//printf("[%d] Received %d from process %d\n", myid, returnValue, i + 1);
 			//fflush(stdout);
@@ -1324,7 +1326,7 @@ void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI =
 		totalTime += elapsed_secs;
 		struct Move bestMove = moves[bestMoveIndex]; // optimize
 		numofMoves++;
-		printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, bestValue+moves[i].points);
+		printf("%d %d -> %d %d : %d\n", bestMove.oldX, bestMove.oldY, bestMove.newX, bestMove.newY, bestMove.points);
 		fflush(stdout);
 		makeMove(board, bestMove, figures, true);
 	}
@@ -1392,8 +1394,8 @@ void gameLoop(char board[8][8], struct Figure figures[32])
 	{
 		printf("**** PLAYER MOVE ****\n");
 		fflush(stdout);
-		playerMove(board, figures);
-		//randomAI(board, figures, true);
+		//playerMove(board, figures);
+		randomAI(board, figures, true);
 		//miniMaxAI(board, figures, 5, false);
 		//Print the board to see the result
 		printBoard(board, figures);
@@ -1467,10 +1469,13 @@ int main(int argc, char *argv[])
 		printf("TOTAL %lf MOVES %d", totalTime, numofMoves);
 
 		figures[0].x = -555;
+		/*
 		for (int i = 0; i < size; i++)
 		{
 			MPI_Send(figures, sizeof(Figure) * 32, MPI_CHAR, i + 1, 0, MPI_COMM_WORLD);
 		}
+		*/
+		MPI_Bcast(figures, sizeof(Figure) * 32, MPI_CHAR, 0, MPI_COMM_WORLD);
 
 	}
 	else
@@ -1506,7 +1511,7 @@ int main(int argc, char *argv[])
 			}
 			evaluateMoves(board, figures, moves, movesIndex);
 			makeMove(board, moves[myid - 1], figures, false);
-			MinimaxReturn ret = minimax(board, figures, DEPTH - 1, false);
+			MinimaxReturn ret = minimax(board, figures, DEPTH - 1, true);
 			int retInt = moves[myid - 1].points - ret.value;
 			// Return best value
 			//printf("[%d] Sending value %d\n", myid, ret.value);
