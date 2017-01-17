@@ -1100,8 +1100,8 @@ struct MinimaxReturn minimax(char board[8][8], struct Figure figures[32], int de
 	ret.value = -999999;
 	struct Move moves[100];
 	int movesIndex = 0;
-	char newBoard[8][8];
-	struct Figure newFigures[32];
+	//char newBoard[8][8];
+	//struct Figure newFigures[32];
 	getAllAvailableMoves(board, moves, movesIndex, figures, !maximizingPlayer);
 
 	evaluateMoves(board, figures, moves, movesIndex);
@@ -1210,11 +1210,13 @@ int numofMoves = 0;
 void miniMaxAI(char board[8][8], struct Figure figures[32], int depth, bool AI = true)
 {
 	numOfExecutions = 0;
-	clock_t begin = clock();
+	
 	//printf("[%d] MINIMAXAI\n", myid);
 	//fflush(stdout);
 	if (myid == 0)
 	{
+		clock_t begin = clock();
+
 		/*
 		Move moves[100];
 		int movesIndex = 0;
@@ -1450,7 +1452,7 @@ int main(int argc, char *argv[])
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	struct Figure figs[32];
+	//struct Figure figs[32];
 
 	if (myid == 0)
 	{
